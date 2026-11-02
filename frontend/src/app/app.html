@@ -1,0 +1,45 @@
+<div class="page-shell">
+  <header class="site-header">
+    <a class="brand" routerLink="/" aria-label="Autos Colombia, inicio">
+      <span class="brand-mark" aria-hidden="true">AC</span><span>Autos Colombia</span>
+    </a>
+    <nav aria-label="Navegación principal">
+      @if (isLoggedIn()) {
+        <a routerLink="/control-acceso" routerLinkActive="active" ariaCurrentWhenActive="page"
+          >Control de acceso</a
+        >
+      }
+
+      @if (isAdmin()) {
+        <a routerLink="/gestion/celdas" routerLinkActive="active" ariaCurrentWhenActive="page"
+          >Celdas</a
+        >
+      }
+
+      <a
+        routerLink="/"
+        routerLinkActive="active"
+        [routerLinkActiveOptions]="{ exact: true }"
+        ariaCurrentWhenActive="page"
+        >Inicio</a
+      >
+
+      @if (isAdmin()) {
+        <a routerLink="/gestion/vehiculos" routerLinkActive="active" ariaCurrentWhenActive="page"
+          >Vehículos</a
+        >
+        <a routerLink="/gestion/usuarios" routerLinkActive="active" ariaCurrentWhenActive="page"
+          >Usuarios</a
+        >
+      }
+
+      @if (!isLoggedIn()) {
+        <a routerLink="/login" routerLinkActive="active" ariaCurrentWhenActive="page">Login</a>
+      } @else {
+        <a href="#" (click)="logout(); $event.preventDefault()">Cerrar sesión</a>
+      }
+    </nav>
+  </header>
+  <main><router-outlet /></main>
+  <footer><span>Autos Colombia</span><span>Control vehicular con claridad.</span></footer>
+</div>
