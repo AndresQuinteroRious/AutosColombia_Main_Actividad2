@@ -94,6 +94,31 @@ La aplicación cuenta con las siguientes rutas:
 - `/gestion/novedades` - Administración de novedades
 - `/gestion/pagos` - Administración de pagos
 
+## Usuarios registrados y acceso
+
+La aplicación cuenta con los siguientes usuarios visibles en el sistema:
+
+### Administradores
+- Oscar Rene Peñaloza Ardila
+  - Documento: `4387888`
+  - Teléfono: `3173746252`
+- Andres Mauricio Quintero Rios
+  - Documento: `1040034902`
+  - Teléfono: `3046509495`
+
+### Empleados
+- Liliana Yaneht Carmona Montoya
+  - Documento: `1040038823`
+  - Teléfono: `3124755000`
+- Thiago Alejandro Rios Lopez
+  - Documento: `1040052403`
+  - Teléfono: `3046508800`
+- Jesús Antonio Arcila Rios
+  - Documento: `1040034454`
+  - Teléfono: `3124758600`
+
+> En la pantalla de login se selecciona el rol y se ingresa la información del usuario para acceder según el perfil.
+
 ## Requisitos del proyecto
 
 - Node.js
