@@ -12,6 +12,7 @@ import {
   VehiculoCrear,
 } from '../models/vehiculo';
 import { Celda, TipoCelda } from '../models/celda';
+import { RolBadge } from '../shared/rol-badge/rol-badge';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -23,7 +24,7 @@ type Field = keyof VehiculoCrear;
 
 @Component({
   selector: 'app-vehiculos',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RolBadge],
   templateUrl: './vehiculos.html',
   styleUrl: './vehiculos.css',
 })

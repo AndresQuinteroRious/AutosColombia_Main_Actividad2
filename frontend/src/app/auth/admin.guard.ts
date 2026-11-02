@@ -19,6 +19,11 @@ export const accessGuard: CanActivateFn = () => {
     return false;
   }
 
+  if (normalizeRol(api.getRol()) === 'ADMINISTRADOR') {
+    router.navigate(['/']);
+    return false;
+  }
+
   return true;
 };
 

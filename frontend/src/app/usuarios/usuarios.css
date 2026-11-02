@@ -1,5 +1,6 @@
 .management {
   padding: 44px 0 60px;
+  position: relative;
 }
 .heading,
 .list-heading,
@@ -188,6 +189,23 @@ thead th {
   background: #eef3ee;
   padding: 5px 8px;
   border-radius: 6px;
+}
+.rol-tag {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.rol-tag.admin {
+  background: #e6f1e8;
+  color: #246044;
+}
+.rol-tag.user {
+  background: #f1f5f9;
+  color: #64748b;
 }
 .pagination {
   margin-top: 24px;

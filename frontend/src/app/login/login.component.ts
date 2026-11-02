@@ -129,8 +129,13 @@ export class LoginComponent {
       next: (res) => {
         this.api.guardarToken(res.token);
         this.api.guardarRol(res.rol);
+        if (res.usuario?.nombre) {
+          this.api.guardarNombre(res.usuario.nombre);
+        }
         this.loading.set(false);
-        this.router.navigateByUrl('/control-acceso');
+
+        const rol = (res.rol ?? '').toString().trim().toUpperCase();
+        this.router.navigateByUrl(rol === 'ADMINISTRADOR' ? '/gestion/usuarios' : '/control-acceso');
       },
       error: (err) => {
         this.loading.set(false);

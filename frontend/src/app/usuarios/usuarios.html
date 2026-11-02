@@ -1,4 +1,5 @@
 <section class="management" aria-labelledby="users-title">
+  <app-rol-badge />
   <header class="heading">
     <div>
       <span class="eyebrow">GESTIÓN DE USUARIOS</span>
@@ -28,14 +29,28 @@
             @for (field of fields; track field.key) {
               <div class="field">
                 <label [for]="field.key">{{ field.label }}</label
-                ><input
-                  [type]="field.type || 'text'"
-                  [id]="field.key"
-                  [formControlName]="field.key"
-                  required
-                  [attr.aria-invalid]="!!fieldError(field.key)"
-                  [attr.aria-describedby]="field.key + '-error'"
-                /><span class="field-error" [id]="field.key + '-error'">{{
+                >@if (field.type === 'select') {
+                  <select
+                    [id]="field.key"
+                    [formControlName]="field.key"
+                    required
+                    [attr.aria-invalid]="!!fieldError(field.key)"
+                    [attr.aria-describedby]="field.key + '-error'"
+                  >
+                    @for (option of field.options; track option) {
+                      <option [value]="option">{{ option }}</option>
+                    }
+                  </select>
+                } @else {
+                  <input
+                    [type]="field.type || 'text'"
+                    [id]="field.key"
+                    [formControlName]="field.key"
+                    required
+                    [attr.aria-invalid]="!!fieldError(field.key)"
+                    [attr.aria-describedby]="field.key + '-error'"
+                  />
+                }<span class="field-error" [id]="field.key + '-error'">{{
                   fieldError(field.key)
                 }}</span>
               </div>
@@ -98,6 +113,7 @@
               <th scope="col">Nombre</th>
               <th scope="col">Documento</th>
               <th scope="col">Teléfono</th>
+              <th scope="col">Rol</th>
               <th scope="col">Fecha de vencimiento</th>
               <th scope="col">Acciones</th>
             </tr>
@@ -108,6 +124,13 @@
                 <th scope="row">{{ user.nombre }}</th>
                 <td>{{ user.documento }}</td>
                 <td>{{ user.telefono }}</td>
+                <td>
+                  @if (user.rol === 'ADMINISTRADOR') {
+                    <span class="rol-tag admin">👑 Administrador</span>
+                  } @else {
+                    <span class="rol-tag user">👤 {{ user.rol || 'Usuario' }}</span>
+                  }
+                </td>
                 <td>{{ user.fecha_vencimiento }}</td>
                 <td class="row-actions">
                   <button

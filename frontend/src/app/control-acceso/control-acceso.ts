@@ -7,6 +7,7 @@ import { Celda } from '../models/celda';
 import { Operador } from '../models/operador';
 import { EstadoVehiculo } from '../models/estancia';
 import { EstanciasService } from '../services/estancias.service';
+import { RolBadge } from '../shared/rol-badge/rol-badge';
 
 const nonBlank: ValidatorFn = (c) =>
   typeof c.value === 'string' && c.value.trim() ? null : { required: true };
@@ -14,7 +15,7 @@ const placa = (value: string) => value.trim().toUpperCase();
 
 @Component({
   selector: 'app-control-acceso',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RolBadge],
   templateUrl: './control-acceso.html',
   styleUrl: './control-acceso.css',
 })

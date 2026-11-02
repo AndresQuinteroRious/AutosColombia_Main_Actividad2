@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angu
 import { UsuariosService } from '../services/usuarios.service';
 import { Usuario, UsuarioCrear } from '../models/usuario';
 import { ErrorApi } from '../models/vehiculo';
+import { RolBadge } from '../shared/rol-badge/rol-badge';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -12,7 +13,7 @@ type Field = keyof UsuarioCrear;
 
 @Component({
   selector: 'app-usuarios',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RolBadge],
   templateUrl: './usuarios.html',
   styleUrl: './usuarios.css',
 })
@@ -24,12 +25,14 @@ export class Usuarios {
     { key: 'nombre' as const, label: 'Nombre' },
     { key: 'documento' as const, label: 'Documento' },
     { key: 'telefono' as const, label: 'Teléfono' },
+    { key: 'rol' as const, label: 'Rol', type: 'select', options: ['ADMINISTRADOR', 'EMPLEADO'] },
     { key: 'fecha_vencimiento' as const, label: 'Fecha de vencimiento', type: 'date' },
   ];
   readonly form = this.fb.group({
     nombre: this.fb.nonNullable.control('', nonBlank),
     documento: this.fb.nonNullable.control('', nonBlank),
     telefono: this.fb.nonNullable.control('', nonBlank),
+    rol: this.fb.control('EMPLEADO'),
     fecha_vencimiento: this.fb.nonNullable.control('', [Validators.required]),
   });
   readonly items = signal<Usuario[]>([]);
@@ -137,6 +140,7 @@ export class Usuarios {
       nombre: value.nombre.trim(),
       documento: value.documento.trim().toUpperCase(),
       telefono: value.telefono.trim(),
+      rol: value.rol?.trim().toUpperCase() || 'EMPLEADO',
       fecha_vencimiento: value.fecha_vencimiento,
     };
     this.form.controls.documento.setValue(payload.documento);

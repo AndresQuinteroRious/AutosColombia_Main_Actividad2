@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { OperadoresService } from '../services/operadores.service';
 import { Operador, OperadorCrear } from '../models/operador';
 import { ErrorApi } from '../models/vehiculo';
+import { RolBadge } from '../shared/rol-badge/rol-badge';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -12,7 +13,7 @@ type Field = keyof OperadorCrear;
 
 @Component({
   selector: 'app-operadores',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RolBadge],
   templateUrl: './operadores.html',
   styleUrl: './operadores.css',
 })

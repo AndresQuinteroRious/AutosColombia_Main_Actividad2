@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angu
 import { CeldasService } from '../services/celdas.service';
 import { Celda, CeldaCrear, TIPOS_CELDA, TipoCelda } from '../models/celda';
 import { ErrorApi } from '../models/vehiculo';
+import { RolBadge } from '../shared/rol-badge/rol-badge';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -12,7 +13,7 @@ type Field = keyof CeldaCrear;
 
 @Component({
   selector: 'app-celdas',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RolBadge],
   templateUrl: './celdas.html',
   styleUrl: './celdas.css',
 })

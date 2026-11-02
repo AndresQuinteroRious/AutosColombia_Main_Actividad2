@@ -31,14 +31,24 @@ export class ApiService {
     localStorage.setItem('rol_admin', rol.trim().toUpperCase());
   }
 
+  guardarNombre(nombre: string) {
+    localStorage.setItem('nombre_usuario', nombre);
+  }
+
   getRol(): string | null {
     const rol = localStorage.getItem('rol_admin');
     return rol ? rol.trim().toUpperCase() : null;
   }
 
+  getNombre(): string | null {
+    const nombre = localStorage.getItem('nombre_usuario');
+    return nombre ? nombre.trim() : null;
+  }
+
   logout() {
     localStorage.removeItem('token_admin');
     localStorage.removeItem('rol_admin');
+    localStorage.removeItem('nombre_usuario');
   }
 
   isLoggedIn(): boolean {
