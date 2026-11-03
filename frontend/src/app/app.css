@@ -4,20 +4,26 @@
   --primary-soft: #edf5ff;
   --bg: #f7f3ee;
   --surface: #ffffff;
+  --surface-alt: #fffdf9;
   --text: #1a2d3d;
   --muted: #5b6b7d;
   --danger: #d94b41;
   --focus: #f4c542;
   --success: #2f7a5c;
   --warning-soft: #fff5d4;
-  --line: #dfe8f4;
+  --line: rgba(29, 78, 137, 0.12);
+  --brand-gradient: linear-gradient(135deg, #1d4e89 0%, #f4c542 52%, #d94b41 100%);
+  --shadow-soft: 0 18px 35px rgba(29, 78, 137, 0.08);
 }
 
 .page-shell {
   max-width: 1200px;
   margin: auto;
   padding: 0 40px;
-  background: var(--bg);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(247, 243, 238, 0.92));
+  box-shadow: var(--shadow-soft);
+  border: 1px solid rgba(29, 78, 137, 0.04);
+  border-radius: 18px;
 }
 .site-header {
   min-height: 96px;
@@ -26,26 +32,29 @@
   justify-content: space-between;
   gap: 20px;
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.35);
+  background: linear-gradient(180deg, rgba(255,255,255,0.72), rgba(255,255,255,0.42));
+  backdrop-filter: blur(4px);
 }
 .brand {
   display: flex;
   align-items: center;
   gap: 12px;
-  font-weight: 650;
+  font-weight: 700;
   text-decoration: none;
-  color: var(--text);
+  color: #111111;
 }
 .brand-mark {
   display: grid;
   place-items: center;
   width: 40px;
   height: 40px;
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
-  color: white;
+  background: linear-gradient(135deg, #ffffff 0%, #f3f6fb 100%);
+  color: #111111;
   border-radius: 12px;
   font-size: 14px;
-  box-shadow: 0 8px 22px rgba(29, 78, 137, 0.2);
+  font-weight: 800;
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  box-shadow: 0 8px 20px rgba(29, 78, 137, 0.08);
 }
 nav {
   display: flex;
@@ -56,13 +65,33 @@ nav a {
   text-decoration: none;
   color: var(--muted);
   padding: 10px 14px;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.2s ease;
 }
+nav a:hover {
+  background: rgba(29, 78, 137, 0.05);
+}
 nav a.active {
-  background: linear-gradient(135deg, var(--primary-soft) 0%, #fff0b5 100%);
+  background: linear-gradient(135deg, #edf5ff 0%, #fff0b3 100%);
   color: var(--primary-dark);
   font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(29, 78, 137, 0.08);
+}
+button {
+  transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+}
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+button.primary {
+  background: var(--brand-gradient);
+  color: #111111;
+  border: none;
+  font-weight: 700;
+  box-shadow: 0 12px 22px rgba(29, 78, 137, 0.15);
+}
+button.primary:hover:not(:disabled) {
+  filter: brightness(1.02);
 }
 main {
   min-height: calc(100vh - 174px);
@@ -79,6 +108,7 @@ footer {
 @media (max-width: 600px) {
   .page-shell {
     padding: 0 18px;
+    border-radius: 0;
   }
   .site-header {
     flex-wrap: wrap;

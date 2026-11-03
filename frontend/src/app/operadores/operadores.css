@@ -55,10 +55,10 @@ p {
 .panel {
   padding: 26px;
   border: 1px solid var(--line);
-  background: var(--panel);
+  background: linear-gradient(180deg, #ffffff 0%, #fdfcfb 100%);
   border-radius: 16px;
   margin-bottom: 24px;
-  box-shadow: 0 8px 24px rgba(33, 76, 67, 0.04);
+  box-shadow: 0 12px 28px rgba(29, 78, 137, 0.08);
 }
 .hint {
   font-size: 13px;
@@ -77,22 +77,27 @@ button {
   background: #fff;
   cursor: pointer;
   font-size: 14px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 button:hover:not(:disabled) {
   background: var(--brand-100);
+  transform: translateY(-1px);
 }
 button.primary {
-  background: var(--brand-900);
-  color: white;
-  border-color: var(--brand-900);
+  background: linear-gradient(135deg, var(--brand-900) 0%, #f4c542 54%, var(--danger) 100%);
+  color: #111111;
+  border-color: transparent;
+  box-shadow: 0 10px 20px rgba(29, 78, 137, 0.18);
+  font-weight: 600;
 }
 button.primary:hover:not(:disabled) {
-  background: var(--brand-800);
+  filter: brightness(1.02);
+  color: #111111;
 }
 button.danger {
-  background: var(--danger);
+  background: linear-gradient(135deg, #d94b41 0%, #b5352d 100%);
   color: white;
-  border-color: var(--danger);
+  border-color: transparent;
 }
 button.delete-link {
   color: var(--danger);

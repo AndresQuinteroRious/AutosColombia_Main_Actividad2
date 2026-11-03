@@ -4,7 +4,7 @@
 
 body {
   margin: 0;
-  background: #f6f2eb;
+  background: linear-gradient(180deg, #f7f2ea 0%, #f1f5fb 100%);
   color: #1a2d3d;
   font-family: 'Segoe UI', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
