@@ -4,13 +4,13 @@
 
 body {
   margin: 0;
-  background: #f6f7f4;
-  color: #203a33;
+  background: #f6f2eb;
+  color: #1a2d3d;
   font-family: 'Segoe UI', Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
 a:focus-visible {
-  outline: 3px solid #94610e;
+  outline: 3px solid #f4c542;
   outline-offset: 6px;
 }

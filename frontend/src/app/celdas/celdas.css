@@ -1,6 +1,22 @@
+:root {
+  --primary: #1d4e89;
+  --primary-dark: #0d2d50;
+  --primary-soft: #edf5ff;
+  --bg: #f7f3ee;
+  --surface: #ffffff;
+  --text: #1a2d3d;
+  --muted: #5b6b7d;
+  --danger: #d94b41;
+  --focus: #f4c542;
+  --success: #2f7a5c;
+  --warning-soft: #fff5d4;
+  --line: #dfe8f4;
+}
+
 .management {
   padding: 44px 0 60px;
   position: relative;
+  background: var(--bg);
 }
 .heading,
 .list-heading,
@@ -16,31 +32,35 @@
 .eyebrow {
   font-size: 11px;
   letter-spacing: 2px;
-  color: #526c60;
+  color: var(--primary);
   font-weight: 700;
 }
 h1 {
   margin: 12px 0;
   font-size: 36px;
   letter-spacing: -1px;
+  color: var(--text);
 }
 h2 {
   font-size: 19px;
   margin: 0;
+  color: var(--text);
 }
 p {
-  color: #586b60;
+  color: var(--muted);
   line-height: 1.6;
 }
 .panel {
   padding: 26px;
-  border: 1px solid #dce2dc;
-  background: #fff;
+  border: 1px solid var(--line);
+  background: var(--surface);
   border-radius: 16px;
   margin-bottom: 24px;
+  box-shadow: 0 8px 18px rgba(33, 76, 67, 0.04);
 }
 .hint {
   font-size: 13px;
+  color: var(--muted);
 }
 button,
 input,
@@ -51,29 +71,29 @@ select {
 button {
   padding: 10px 14px;
   border: 1px solid #c9d7ce;
-  color: #214c43;
+  color: var(--primary);
   background: #fff;
   cursor: pointer;
   font-size: 14px;
 }
 button:hover:not(:disabled) {
-  background: #eef3ee;
+  background: var(--primary-soft);
 }
 button.primary {
-  background: #214c43;
+  background: var(--primary);
   color: white;
-  border-color: #214c43;
+  border-color: var(--primary);
 }
 button.primary:hover:not(:disabled) {
-  background: #163d34;
+  background: var(--primary-dark);
 }
 button.danger {
-  background: #a03930;
+  background: var(--danger);
   color: white;
-  border-color: #a03930;
+  border-color: var(--danger);
 }
 button.delete-link {
-  color: #a03930;
+  color: var(--danger);
 }
 button:disabled {
   opacity: 0.5;
@@ -82,7 +102,7 @@ button:disabled {
 button:focus-visible,
 input:focus-visible,
 select:focus-visible {
-  outline: 3px solid #aa7b2e;
+  outline: 3px solid var(--focus);
   outline-offset: 3px;
 }
 fieldset {
@@ -105,6 +125,7 @@ fieldset {
 label {
   font-size: 14px;
   font-weight: 600;
+  color: var(--text);
 }
 input,
 select {
@@ -112,14 +133,14 @@ select {
   border: 1px solid #b9c9bd;
   background: #fff;
   width: 100%;
-  color: #203a33;
+  color: var(--text);
 }
 [aria-invalid='true'] {
-  border-color: #a03930;
+  border-color: var(--danger);
 }
 .field-error {
   font-size: 12px;
-  color: #a03930;
+  color: var(--danger);
   min-height: 16px;
 }
 .actions {
@@ -134,15 +155,15 @@ select {
 }
 .success {
   background: #e6f1e8;
-  color: #246044;
+  color: var(--success);
 }
 .error {
   background: #fff0ec;
-  color: #923b2e;
+  color: var(--danger);
 }
 .confirmation {
-  border-color: #d4a899;
-  background: #fffaf7;
+  border-color: var(--focus);
+  background: var(--warning-soft);
 }
 .list-heading {
   margin-bottom: 24px;
@@ -157,7 +178,7 @@ select {
 .filter-bar label {
   font-size: 14px;
   font-weight: 600;
-  color: #586b60;
+  color: var(--muted);
 }
 .filter-bar input {
   flex: 1;
@@ -171,7 +192,8 @@ select {
 }
 .count {
   margin-left: 8px;
-  background: #eef3ee;
+  background: var(--primary-soft);
+  color: var(--primary);
   padding: 3px 9px;
   border-radius: 15px;
   font-size: 13px;

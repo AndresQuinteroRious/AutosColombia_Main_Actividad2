@@ -9,37 +9,37 @@ import { ApiService } from '../services/api.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #edf3f0 0%, #f7f9fb 100%); padding: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
-      <div style="width: 100%; max-width: 460px; background: rgba(255,255,255,0.9); border: 1px solid rgba(15, 23, 42, 0.07); border-radius: 22px; box-shadow: 0 22px 50px rgba(15, 23, 42, 0.10); padding: 32px 28px 28px; backdrop-filter: blur(8px);">
-        <div style="display: flex; align-items: center; justify-content: center; width: 56px; height: 56px; margin: 0 auto 18px; border-radius: 16px; background: linear-gradient(135deg, #dfeee8, #cfe5da); color: #1d4d3b; font-size: 26px; font-weight: 700;">
+    <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #edf5ff 0%, #fff8d9 45%, #fff1ee 100%); padding: 24px; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+      <div style="width: 100%; max-width: 460px; background: rgba(255,255,255,0.9); border: 1px solid rgba(29, 78, 137, 0.12); border-radius: 22px; box-shadow: 0 22px 50px rgba(29, 78, 137, 0.12); padding: 32px 28px 28px; backdrop-filter: blur(8px);">
+        <div style="display: flex; align-items: center; justify-content: center; width: 60px; height: 60px; margin: 0 auto 18px; border-radius: 18px; background: linear-gradient(135deg, #1d4e89 0%, #f4c542 50%, #d94b41 100%); color: white; font-size: 28px; font-weight: 800; box-shadow: 0 12px 24px rgba(29, 78, 137, 0.18);">
           A
         </div>
 
         <div style="text-align: center; margin-bottom: 24px;">
-          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #64748b; font-weight: 700;">Autos Colombia</div>
-          <h2 style="margin: 8px 0 0; font-size: 30px; color: #0f172a;">Iniciar sesión</h2>
+          <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: #1d4e89; font-weight: 800;">Autos Colombia</div>
+          <h2 style="margin: 8px 0 0; font-size: 30px; color: #1a2d3d;">Iniciar sesión</h2>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 18px;">
           <label style="display: block;">
-            <div style="margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 14px;">Documento</div>
-            <input type="text" [(ngModel)]="documento" placeholder="ADMIN-001" style="width: 100%; padding: 12px 14px; border: 1px solid #dfe7ee; border-radius: 12px; background: #f8fafc; color: #0f172a; font-size: 15px; box-sizing: border-box; outline: none; transition: border-color 0.2s ease;" />
+            <div style="margin-bottom: 8px; font-weight: 700; color: #1a2d3d; font-size: 14px;">Documento</div>
+            <input type="text" [(ngModel)]="documento" placeholder="ADMIN-001" style="width: 100%; padding: 12px 14px; border: 1px solid #dfe8f4; border-radius: 12px; background: #f8fbff; color: #1a2d3d; font-size: 15px; box-sizing: border-box; outline: none; transition: border-color 0.2s ease, box-shadow 0.2s ease; box-shadow: inset 0 1px 2px rgba(29, 78, 137, 0.04);" />
           </label>
 
           <label style="display: block;">
-            <div style="margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 14px;">Teléfono</div>
+            <div style="margin-bottom: 8px; font-weight: 700; color: #1a2d3d; font-size: 14px;">Teléfono</div>
             <div style="position: relative;">
               <input
                 [type]="showPhone() ? 'text' : 'password'"
                 [(ngModel)]="telefono"
                 placeholder="3001112222"
-                style="width: 100%; padding: 12px 46px 12px 14px; border: 1px solid #dfe7ee; border-radius: 12px; background: #f8fafc; color: #0f172a; font-size: 15px; box-sizing: border-box; outline: none;"
+                style="width: 100%; padding: 12px 46px 12px 14px; border: 1px solid #dfe8f4; border-radius: 12px; background: #f8fbff; color: #1a2d3d; font-size: 15px; box-sizing: border-box; outline: none; box-shadow: inset 0 1px 2px rgba(29, 78, 137, 0.04);"
               />
               <button
                 type="button"
                 (click)="togglePhoneVisibility()"
                 [attr.aria-label]="showPhone() ? 'Ocultar teléfono' : 'Mostrar teléfono'"
-                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; cursor: pointer; font-size: 18px; color: #475569;"
+                style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; cursor: pointer; font-size: 18px; color: #1d4e89;"
               >
                 {{ showPhone() ? '🙈' : '👁️' }}
               </button>
@@ -47,17 +47,17 @@ import { ApiService } from '../services/api.service';
           </label>
 
           <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #334155; font-size: 14px;">Rol de acceso</label>
+            <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #1a2d3d; font-size: 14px;">Rol de acceso</label>
             <select
               [(ngModel)]="rolSeleccionado"
               (ngModelChange)="cambiarRol($event)"
-              style="width: 100%; padding: 12px 14px; border: 1px solid #dfe7ee; border-radius: 12px; background: #f8fafc; color: #0f172a; font-size: 15px; box-sizing: border-box; outline: none;"
+              style="width: 100%; padding: 12px 14px; border: 1px solid #dfe8f4; border-radius: 12px; background: #f8fbff; color: #1a2d3d; font-size: 15px; box-sizing: border-box; outline: none; box-shadow: inset 0 1px 2px rgba(29, 78, 137, 0.04);"
             >
               @for (rol of roles; track rol.value) {
                 <option [value]="rol.value">{{ rol.label }}</option>
               }
             </select>
-            <small style="display: block; margin-top: 8px; color: #475569; font-size: 12px;">Sesión actual: {{ rolActual() }}</small>
+            <small style="display: block; margin-top: 8px; color: #5b6b7d; font-size: 12px;">Sesión actual: {{ rolActual() }}</small>
           </div>
         </div>
 
@@ -65,13 +65,13 @@ import { ApiService } from '../services/api.service';
           type="button"
           (click)="login()"
           [disabled]="loading()"
-          style="margin-top: 22px; width: 100%; padding: 14px 16px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #1f7a5d, #0f766e); color: white; font-size: 16px; font-weight: 700; cursor: pointer; box-shadow: 0 10px 20px rgba(15, 118, 110, 0.20);"
+          style="margin-top: 22px; width: 100%; padding: 14px 16px; border: 0; border-radius: 12px; background: linear-gradient(135deg, #1d4e89 0%, #f4c542 50%, #d94b41 100%); color: white; font-size: 16px; font-weight: 800; cursor: pointer; box-shadow: 0 12px 24px rgba(29, 78, 137, 0.18);"
         >
           {{ loading() ? 'Ingresando...' : 'Entrar' }}
         </button>
 
         @if (error()) {
-          <p style="margin-top: 18px; margin-bottom: 0; color: #b42318; font-weight: 700; font-size: 14px;">{{ error() }}</p>
+          <p style="margin-top: 18px; margin-bottom: 0; color: #b5312d; font-weight: 700; font-size: 14px;">{{ error() }}</p>
         }
       </div>
     </div>
