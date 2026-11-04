@@ -196,4 +196,82 @@
       </div>
     </nav>
   </section>
+
+  <section class="panel list" aria-labelledby="history-title">
+    <div class="list-heading">
+      <div>
+        <h2 id="history-title">Historial de estancias</h2>
+        <p>Busca los ingresos y salidas registrados para una placa.</p>
+      </div>
+    </div>
+    <form class="history-search" (ngSubmit)="buscarHistorial()">
+      <div class="field">
+        <label for="history-plate">Placa</label>
+        <input
+          id="history-plate"
+          name="history-plate"
+          type="text"
+          [value]="historyPlate()"
+          (input)="historyPlate.set($any($event.target).value)"
+          placeholder="Ej: ABC123"
+        />
+      </div>
+      <button class="primary" type="submit" [disabled]="historyLoading()">
+        {{ historyLoading() ? 'Buscando…' : 'Buscar historial' }}
+      </button>
+    </form>
+
+    @if (historyError()) {
+      <p class="notice error" role="alert">{{ historyError() }}</p>
+    } @else if (historyLoading()) {
+      <p class="empty" role="status">Cargando historial…</p>
+    } @else if (historySearched() && !historyItems().length) {
+      <p class="empty">No hay estancias registradas para esta placa.</p>
+    } @else if (historyItems().length) {
+      <div class="table-scroll">
+        <table>
+          <caption class="sr-only">Historial de estancias por placa</caption>
+          <thead>
+            <tr>
+              <th scope="col">Placa</th>
+              <th scope="col">Celda</th>
+              <th scope="col">Entrada</th>
+              <th scope="col">Salida</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (stay of historyItems(); track stay.id) {
+              <tr>
+                <th scope="row">{{ stay.vehiculo.placa }}</th>
+                <td>{{ stay.celda.codigo }}</td>
+                <td>{{ fechaEstancia(stay.entrada) }}</td>
+                <td>{{ fechaEstancia(stay.salida) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <nav class="pagination" aria-label="Paginación del historial de estancias">
+        <span>
+          Página {{ historyPage() }} de {{ historyPages() }} · {{ historyTotal() }} estancias
+        </span>
+        <div class="actions">
+          <button
+            type="button"
+            (click)="buscarHistorial(historyOffset() - historyLimit)"
+            [disabled]="historyLoading() || historyOffset() === 0"
+          >
+            Anterior
+          </button>
+          <button
+            type="button"
+            (click)="buscarHistorial(historyOffset() + historyLimit)"
+            [disabled]="historyLoading() || historyOffset() + historyLimit >= historyTotal()"
+          >
+            Siguiente
+          </button>
+        </div>
+      </nav>
+    }
+  </section>
 </section>

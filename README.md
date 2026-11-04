@@ -115,7 +115,7 @@ las dependencias y el backend. No se modificó el esquema ni se creó un commit.
 
 Se verificó antes de implementar que `0002` está aplicada y que existen la tabla
 estancia, sus cuatro FK RESTRICT, ambos CHECK y los índices únicos parciales.
-Esta etapa no modifica modelos, tablas, migraciones ni Angular.
+La consulta de historial no requiere cambios de esquema ni nuevas migraciones.
 
 | Método y ruta | Solicitud | Respuesta |
 | --- | --- | --- |
@@ -123,6 +123,7 @@ Esta etapa no modifica modelos, tablas, migraciones ni Angular.
 | `POST /estancias/salida` | placa, operador_id | 200, estancia cerrada |
 | `GET /estancias/vehiculo/{placa}` | placa en la ruta | 200, vehículo y estado actual; 404 si no está registrado |
 | `GET /estancias/abiertas` | — | 200, lista de estancias abiertas con vehículo y celda |
+| `GET /estancias/historial` | placa o celda_id; offset y limit opcionales | 200, historial paginado con vehículo y celda |
 
 Las respuestas de entrada/salida contienen `id`, `vehiculo_id`, `celda_id`,
 `entrada`, `salida`, `operador_entrada_id` y `operador_salida_id`. Las fechas se
@@ -133,10 +134,14 @@ La consulta devuelve `vehiculo` con los datos del vehículo, `esta_dentro` boole
 y `estancia`. Cuando está fuera, `estancia` es null. Cuando está dentro, contiene
 los siete campos de la estancia y `celda` con id, codigo y tipo; la fecha de ingreso
 está en `estancia.entrada`. La consulta usa una sola sentencia para obtener ese
-estado consistente. No devuelve historial ni permite editar o borrar estancias.
+estado consistente. No permite editar o borrar estancias.
 La ruta `/estancias/abiertas` lista las estancias que aún no tienen salida,
 ordenadas de la más reciente a la más antigua, e incluye los datos de vehículo y
 celda para la pantalla de inicio.
+La ruta `/estancias/historial` requiere filtrar por placa, por celda o por ambas;
+devuelve hasta 20 resultados por página de forma predeterminada (máximo 100),
+ordenados por fecha de entrada descendente. Las fechas se muestran en la
+zona horaria America/Bogota en las pantallas de vehículos y celdas.
 
 Las placas se recortan y convierten a mayúsculas. Los ids deben ser enteros JSON
 positivos dentro del rango BIGINT; no se aceptan booleanos, cadenas numéricas,

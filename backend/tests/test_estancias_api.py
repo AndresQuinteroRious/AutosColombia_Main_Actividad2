@@ -8,9 +8,18 @@ def test_openapi_y_salud():
     with TestClient(app) as client:
         schema = client.get('/openapi.json').json()
         for path, method in [('/estancias/entrada', 'post'), ('/estancias/salida', 'post'),
-                             ('/estancias/vehiculo/{placa}', 'get'), ('/estancias/abiertas', 'get')]:
+                             ('/estancias/vehiculo/{placa}', 'get'), ('/estancias/abiertas', 'get'),
+                             ('/estancias/historial', 'get')]:
             assert method in schema['paths'][path]
         assert client.get('/health').json() == {'status': 'ok'}
+
+
+def test_historial_requiere_filtro_y_valida_paginacion():
+    with TestClient(app) as client:
+        assert client.get('/estancias/historial').status_code == 422
+        assert client.get('/estancias/historial?placa=%20').status_code == 422
+        assert client.get('/estancias/historial?celda_id=0').status_code == 422
+        assert client.get('/estancias/historial?placa=ABC123&limit=101').status_code == 422
 
 
 @pytest.mark.parametrize('payload', [

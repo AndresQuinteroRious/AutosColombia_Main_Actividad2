@@ -4,7 +4,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { CeldasService } from '../services/celdas.service';
 import { Celda, CeldaCrear, TIPOS_CELDA, TipoCelda } from '../models/celda';
+import { EstanciaHistorial } from '../models/estancia';
 import { ErrorApi } from '../models/vehiculo';
+import { EstanciasService } from '../services/estancias.service';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -18,6 +20,7 @@ type Field = keyof CeldaCrear;
 })
 export class Celdas {
   private readonly api = inject(CeldasService);
+  private readonly estanciasApi = inject(EstanciasService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   readonly types = TIPOS_CELDA;
@@ -58,6 +61,17 @@ export class Celdas {
   readonly total = computed(() => this.filteredItems().length);
   readonly page = computed(() => Math.floor(this.offset() / this.limit) + 1);
   readonly pages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
+  readonly historyCell = signal<Celda | null>(null);
+  readonly historyItems = signal<EstanciaHistorial[]>([]);
+  readonly historyTotal = signal(0);
+  readonly historyOffset = signal(0);
+  readonly historyLimit = 10;
+  readonly historyLoading = signal(false);
+  readonly historyError = signal('');
+  readonly historyPage = computed(() => Math.floor(this.historyOffset() / this.historyLimit) + 1);
+  readonly historyPages = computed(() =>
+    Math.max(1, Math.ceil(this.historyTotal() / this.historyLimit)),
+  );
 
   setFilterText(value: string): void {
     this.filterText.set(value);
@@ -70,6 +84,41 @@ export class Celdas {
 
   nextPage(): void {
     this.offset.set(this.offset() + this.limit);
+  }
+
+  verHistorial(cell: Celda, offset = 0): void {
+    if (this.historyLoading()) return;
+    this.historyCell.set(cell);
+    this.historyLoading.set(true);
+    this.historyError.set('');
+    this.estanciasApi
+      .historial({ celdaId: cell.id }, offset, this.historyLimit)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          this.historyItems.set(data.items);
+          this.historyTotal.set(data.total);
+          this.historyOffset.set(data.offset);
+          this.historyLoading.set(false);
+        },
+        error: () => {
+          this.historyItems.set([]);
+          this.historyTotal.set(0);
+          this.historyLoading.set(false);
+          this.historyError.set(
+            'No se pudo cargar el historial de esta celda. Verifica la conexión con el servidor.',
+          );
+        },
+      });
+  }
+
+  fechaEstancia(value: string | null): string {
+    if (!value) return 'Abierta';
+    return new Intl.DateTimeFormat('es-CO', {
+      timeZone: 'America/Bogota',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
   }
 
   constructor() {
@@ -248,4 +297,3 @@ export class Celdas {
     return 'No se pudo conectar con el servicio. Comprueba la conexión y actualiza el listado antes de reintentar.';
   }
 }
-

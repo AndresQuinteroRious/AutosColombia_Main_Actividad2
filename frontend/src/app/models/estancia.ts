@@ -28,3 +28,13 @@ export interface EstanciaAbierta extends Estancia {
   vehiculo: Vehiculo;
   celda: Celda;
 }
+export interface EstanciaHistorial extends Estancia {
+  vehiculo: Vehiculo;
+  celda: Celda;
+}
+export interface EstanciasPagina {
+  items: EstanciaHistorial[];
+  total: number;
+  offset: number;
+  limit: number;
+}

@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from functools import wraps
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -9,7 +9,7 @@ from app.models import Celda, Estancia, Operador, Vehiculo, required_text
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear, SalidaCrear, EstanciaRespuesta, EstanciaAbiertaRespuesta,
-    EstanciaAbiertaListadoRespuesta, EstadoVehiculoRespuesta,
+    EstanciaAbiertaListadoRespuesta, EstanciaHistorialRespuesta, EstadoVehiculoRespuesta,
 )
 from app.schemas.vehiculo import VehiculoRespuesta
 
@@ -138,3 +138,40 @@ class ServicioEstancia:
             )
             for estancia, vehiculo, celda in rows
         ]
+
+    @transaccion
+    def historial(
+        self, placa: str | None, celda_id: int | None, offset: int, limit: int
+    ) -> dict:
+        if placa is None and celda_id is None:
+            raise EstanciaError(422, "Indica una placa o celda_id para consultar el historial.")
+        filters = []
+        if placa is not None:
+            filters.append(Vehiculo.placa == required_text(placa, "placa").upper())
+        if celda_id is not None:
+            filters.append(Estancia.celda_id == celda_id)
+
+        total = self.session.scalar(
+            select(func.count())
+            .select_from(Estancia)
+            .join(Vehiculo, Vehiculo.id == Estancia.vehiculo_id)
+            .where(*filters)
+        )
+        rows = self.session.execute(
+            select(Estancia, Vehiculo, Celda)
+            .join(Vehiculo, Vehiculo.id == Estancia.vehiculo_id)
+            .join(Celda, Celda.id == Estancia.celda_id)
+            .where(*filters)
+            .order_by(Estancia.entrada.desc(), Estancia.id.desc())
+            .offset(offset)
+            .limit(limit)
+        ).all()
+        items = [
+            EstanciaHistorialRespuesta(
+                **EstanciaRespuesta.model_validate(estancia).model_dump(),
+                vehiculo=VehiculoRespuesta.model_validate(vehiculo),
+                celda=CeldaRespuesta.model_validate(celda),
+            )
+            for estancia, vehiculo, celda in rows
+        ]
+        return {"items": items, "total": total or 0, "offset": offset, "limit": limit}

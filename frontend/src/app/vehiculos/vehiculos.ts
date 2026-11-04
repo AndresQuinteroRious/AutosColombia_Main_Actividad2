@@ -2,7 +2,9 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
+import { EstanciaHistorial } from '../models/estancia';
 import { ApiService } from '../services/api.service';
+import { EstanciasService } from '../services/estancias.service';
 import {
   ErrorApi,
   TIPOS_VEHICULO,
@@ -29,6 +31,7 @@ export class Vehiculos {
   private readonly api = inject(ApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
+  private readonly estanciasApi = inject(EstanciasService);
   readonly types = TIPOS_VEHICULO;
   readonly fields: { key: 'placa' | 'color' | 'modelo' | 'marca'; label: string; type: string }[] =
     [
@@ -71,6 +74,18 @@ export class Vehiculos {
   readonly filtroPlaca = signal('');
   readonly page = computed(() => Math.floor(this.offset() / this.limit) + 1);
   readonly pages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
+  readonly historyPlate = signal('');
+  readonly historyItems = signal<EstanciaHistorial[]>([]);
+  readonly historyTotal = signal(0);
+  readonly historyOffset = signal(0);
+  readonly historyLimit = 10;
+  readonly historyLoading = signal(false);
+  readonly historySearched = signal(false);
+  readonly historyError = signal('');
+  readonly historyPage = computed(() => Math.floor(this.historyOffset() / this.historyLimit) + 1);
+  readonly historyPages = computed(() =>
+    Math.max(1, Math.ceil(this.historyTotal() / this.historyLimit)),
+  );
 
   constructor() {
     this.load();
@@ -262,5 +277,50 @@ export class Vehiculos {
     if (filtroPlacaInput) {
       this.filtroPlaca.set(filtroPlacaInput.value);
     }
+  }
+
+  buscarHistorial(offset = 0): void {
+    const placa = this.historyPlate().trim().toUpperCase();
+    if (!placa) {
+      this.historySearched.set(true);
+      this.historyItems.set([]);
+      this.historyTotal.set(0);
+      this.historyError.set('Escribe una placa para consultar su historial.');
+      return;
+    }
+    if (this.historyLoading()) return;
+
+    this.historyPlate.set(placa);
+    this.historyLoading.set(true);
+    this.historySearched.set(true);
+    this.historyError.set('');
+    this.estanciasApi
+      .historial({ placa }, offset, this.historyLimit)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (data) => {
+          this.historyItems.set(data.items);
+          this.historyTotal.set(data.total);
+          this.historyOffset.set(data.offset);
+          this.historyLoading.set(false);
+        },
+        error: () => {
+          this.historyItems.set([]);
+          this.historyTotal.set(0);
+          this.historyLoading.set(false);
+          this.historyError.set(
+            'No se pudo cargar el historial. Verifica la placa y la conexión con el servidor.',
+          );
+        },
+      });
+  }
+
+  fechaEstancia(value: string | null): string {
+    if (!value) return 'Abierta';
+    return new Intl.DateTimeFormat('es-CO', {
+      timeZone: 'America/Bogota',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(value));
   }
 }

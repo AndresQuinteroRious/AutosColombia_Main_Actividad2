@@ -17,14 +17,17 @@
       <p role="alert" class="notice error">{{ catalogError() }}</p>
     }
     @if (!catalogLoading() && !catalogError()) {
-      <p>{{ celdas().length }} celdas · {{ operadores().length }} operadores.</p>
-      @if (!celdas().length || !operadores().length) {
-        <p>Registra celdas y operadores desde su gestión para poder seleccionarlos.</p>
+      <p>{{ celdas().length }} celdas disponibles · {{ operadores().length }} operadores.</p>
+      @if (!celdas().length) {
+        <p>No hay celdas disponibles; las ocupadas por estancias abiertas no aparecen.</p>
+      }
+      @if (!operadores().length) {
+        <p>Registra operadores desde su gestión para poder seleccionarlos.</p>
       }
     }
     <p class="hint">
-      Las celdas listadas no indican disponibilidad. La ocupación se validará al registrar la
-      entrada.
+      La lista excluye las celdas con estancias abiertas. La disponibilidad se valida nuevamente al
+      registrar la entrada.
     </p>
   </section>
   <section class="panel" aria-labelledby="entry-title">

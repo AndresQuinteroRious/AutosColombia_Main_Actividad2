@@ -1,4 +1,4 @@
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { EMPTY, Observable, expand, reduce, throwError, timeout } from 'rxjs';
 import { Celda } from '../models/celda';
@@ -8,6 +8,7 @@ import {
   SalidaCrear,
   Estancia,
   EstanciaAbierta,
+  EstanciasPagina,
   EstadoVehiculo,
 } from '../models/estancia';
 import { API_BASE_URL } from './api.service';
@@ -56,6 +57,21 @@ export class EstanciasService {
     return this.http
       .get<EstanciaAbierta[]>(`${this.base}/abiertas`, {
         headers: this.getAuthHeaders(),
+      })
+      .pipe(timeout(15000));
+  }
+  historial(
+    filtro: { placa?: string; celdaId?: number },
+    offset: number,
+    limit: number,
+  ) {
+    let params = new HttpParams().set('offset', offset).set('limit', limit);
+    if (filtro.placa !== undefined) params = params.set('placa', filtro.placa);
+    if (filtro.celdaId !== undefined) params = params.set('celda_id', filtro.celdaId);
+    return this.http
+      .get<EstanciasPagina>(`${this.base}/historial`, {
+        headers: this.getAuthHeaders(),
+        params,
       })
       .pipe(timeout(15000));
   }

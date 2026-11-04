@@ -146,6 +146,16 @@ select {
 .list-heading {
   margin-bottom: 24px;
 }
+.history-search {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.history-search .field {
+  flex: 1;
+  max-width: 360px;
+}
 .count {
   margin-left: 8px;
   background: #eef3ee;
@@ -218,6 +228,10 @@ thead th {
   .list-heading,
   .pagination {
     flex-wrap: wrap;
+  }
+  .history-search {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 @media (max-width: 460px) {

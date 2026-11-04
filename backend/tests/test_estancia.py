@@ -12,7 +12,7 @@ from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateIndex, CreateTable
 
 from app.models import Base, Celda, Estancia, Operador, Vehiculo
-from app.services.estancia import ServicioEstancia
+from app.services.estancia import EstanciaError, ServicioEstancia
 
 ENTRADA = datetime(2026, 10, 19, 10, tzinfo=timezone.utc)
 
@@ -92,6 +92,56 @@ def test_listar_estancias_abiertas_incluye_vehiculo_y_celda_en_orden():
     sql = str(session.statement)
     assert "estancia.salida IS NULL" in sql
     assert "ORDER BY estancia.entrada DESC, estancia.id DESC" in sql
+
+
+def test_historial_filtra_placa_pagina_y_materializa_relaciones():
+    estancia = Estancia(
+        id=9,
+        vehiculo_id=11,
+        celda_id=5,
+        entrada=ENTRADA,
+        salida=None,
+        operador_entrada_id=7,
+    )
+    vehiculo = Vehiculo(
+        id=11, placa="ABC123", color="azul", modelo=2022, marca="Toyota", tipo="AUTOMOVIL"
+    )
+    celda = Celda(id=5, codigo="A-01", tipo="AUTOMOVIL")
+
+    class SessionStub:
+        def __init__(self):
+            self.executed = None
+
+        def begin(self):
+            return nullcontext()
+
+        def scalar(self, statement):
+            self.count_statement = statement
+            return 1
+
+        def execute(self, statement):
+            self.executed = statement
+            return type("Result", (), {"all": lambda _self: [(estancia, vehiculo, celda)]})()
+
+    session = SessionStub()
+    result = ServicioEstancia(session).historial("abc123", None, 10, 5)
+
+    assert result["total"] == 1
+    assert result["offset"] == 10 and result["limit"] == 5
+    assert result["items"][0].vehiculo.placa == "ABC123"
+    assert result["items"][0].celda.codigo == "A-01"
+    assert result["items"][0].salida is None
+    assert "vehiculo.placa =" in str(session.executed)
+    assert "LIMIT" in str(session.executed) and "OFFSET" in str(session.executed)
+
+
+def test_historial_requiere_un_filtro():
+    class SessionStub:
+        def begin(self):
+            return nullcontext()
+
+    with pytest.raises(EstanciaError, match="Indica una placa o celda_id"):
+        ServicioEstancia(SessionStub()).historial(None, None, 0, 20)
 
 
 def test_relaciones_y_columnas():

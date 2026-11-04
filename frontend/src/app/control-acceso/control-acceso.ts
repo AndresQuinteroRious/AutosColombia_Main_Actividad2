@@ -64,11 +64,16 @@ export class ControlAcceso {
     this.entrada.controls.celda_id.reset();
     this.entrada.controls.operador_id.reset();
     this.consulta.controls.operador_id.reset();
-    forkJoin({ celdas: this.api.celdas(), operadores: this.api.operadores() })
+    forkJoin({
+      celdas: this.api.celdas(),
+      operadores: this.api.operadores(),
+      abiertas: this.api.abiertas(),
+    })
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (data) => {
-          this.celdas.set(data.celdas);
+          const celdasOcupadas = new Set(data.abiertas.map((estancia) => estancia.celda_id));
+          this.celdas.set(data.celdas.filter((celda) => !celdasOcupadas.has(celda.id)));
           this.operadores.set(data.operadores);
           this.catalogLoading.set(false);
         },

@@ -64,7 +64,43 @@ describe('Gestión de vehículos', () => {
   it('muestra carga y listado vacío', () => {
     expect(fixture.nativeElement.textContent).toContain('Cargando vehículos');
     flushList();
-    expect(fixture.nativeElement.textContent).toContain('Aún no hay vehículos');
+    expect(fixture.nativeElement.textContent).toContain('No se encontraron vehículos');
+  });
+
+  it('busca y presenta el historial paginado de una placa', () => {
+    flushList();
+    component.historyPlate.set(' abc123 ');
+    component.buscarHistorial();
+
+    const request = http.expectOne(
+      (req) => req.url === '/estancias/historial' && req.params.get('placa') === 'ABC123',
+    );
+    expect(request.request.params.get('offset')).toBe('0');
+    expect(request.request.params.get('limit')).toBe('10');
+    request.flush({
+      items: [
+        {
+          id: 8,
+          vehiculo_id: 1,
+          celda_id: 2,
+          entrada: '2026-10-19T15:00:00Z',
+          salida: null,
+          operador_entrada_id: 4,
+          operador_salida_id: null,
+          vehiculo: vehicle,
+          celda: { id: 2, codigo: 'A-02', tipo: 'AUTOMOVIL' },
+        },
+      ],
+      total: 1,
+      offset: 0,
+      limit: 10,
+    });
+    fixture.detectChanges();
+
+    const history = fixture.nativeElement.querySelector('[aria-labelledby="history-title"]');
+    expect(history.textContent).toContain('ABC123');
+    expect(history.textContent).toContain('A-02');
+    expect(history.textContent).toContain('Abierta');
   });
 
   it('pagina usando offset y limit', () => {

@@ -1,11 +1,12 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ControlAcceso } from './control-acceso';
 
 describe('Control de acceso', () => {
   let http: HttpTestingController;
   let c: ControlAcceso;
+  let fixture: ComponentFixture<ControlAcceso>;
   const celda = { id: 2, codigo: 'TEST-C', tipo: 'Libre' };
   const stay = {
     id: 3,
@@ -34,7 +35,8 @@ describe('Control de acceso', () => {
       providers: [provideHttpClient(), provideHttpClientTesting()],
     });
     http = TestBed.inject(HttpTestingController);
-    c = TestBed.createComponent(ControlAcceso).componentInstance;
+    fixture = TestBed.createComponent(ControlAcceso);
+    c = fixture.componentInstance;
     http
       .expectOne('/celdas?offset=0&limit=100')
       .flush({ items: [celda], total: 2, offset: 0, limit: 100 });
@@ -49,6 +51,7 @@ describe('Control de acceso', () => {
         offset: 0,
         limit: 100,
       });
+    http.expectOne('/estancias/abiertas').flush([]);
   });
   afterEach(() => http.verify());
 
@@ -62,6 +65,34 @@ describe('Control de acceso', () => {
     req.flush(stay);
     expect(c.exitoEntrada()).toContain('TEST-C');
     expect(c.exitoEntrada()).toContain('Bogotá');
+  });
+  it('excluye del desplegable las celdas que tienen estancias abiertas', () => {
+    c.cargarCatalogos();
+    http
+      .expectOne('/celdas?offset=0&limit=100')
+      .flush({ items: [celda], total: 2, offset: 0, limit: 100 });
+    http
+      .expectOne('/celdas?offset=1&limit=100')
+      .flush({ items: [{ ...celda, id: 5, codigo: 'TEST-FREE' }], total: 2, offset: 1, limit: 100 });
+    http
+      .expectOne('/operadores?offset=0&limit=100')
+      .flush({
+        items: [{ id: 4, nombre: 'Prueba', telefono: '001' }],
+        total: 1,
+        offset: 0,
+        limit: 100,
+      });
+    http.expectOne('/estancias/abiertas').flush([{ ...stay, celda }]);
+
+    fixture.detectChanges();
+
+    const options = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll<HTMLSelectElement>('#entry-cell option'),
+    );
+    expect(options).toHaveLength(2);
+    expect(options[1].textContent).toContain('TEST-FREE');
+    expect(options.some((option) => option.textContent?.includes('TEST-C'))).toBe(false);
+    expect(c.celdas().map((cell) => cell.id)).toEqual([5]);
   });
   it('rechaza blancos y muestra los conflictos de ocupación y referencias', () => {
     c.entrada.setValue({ placa: ' ', celda_id: 2, operador_id: 4 });

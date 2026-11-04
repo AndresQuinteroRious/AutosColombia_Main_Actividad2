@@ -47,6 +47,18 @@ class EstanciaAbiertaListadoRespuesta(EstanciaRespuesta):
     celda: CeldaRespuesta
 
 
+class EstanciaHistorialRespuesta(EstanciaRespuesta):
+    vehiculo: VehiculoRespuesta
+    celda: CeldaRespuesta
+
+
+class EstanciasPagina(BaseModel):
+    items: list[EstanciaHistorialRespuesta]
+    total: int
+    offset: int
+    limit: int
+
+
 class EstadoVehiculoRespuesta(BaseModel):
     vehiculo: VehiculoRespuesta
     esta_dentro: bool

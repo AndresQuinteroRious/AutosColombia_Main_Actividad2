@@ -151,6 +151,14 @@
                   >
                     Eliminar
                   </button>
+                  <button
+                    type="button"
+                    (click)="verHistorial(cell)"
+                    [disabled]="historyLoading()"
+                    [attr.aria-label]="'Ver historial de ' + cell.codigo"
+                  >
+                    Historial
+                  </button>
                 </td>
               </tr>
             }
@@ -177,4 +185,67 @@
       </div>
     </nav>
   </section>
+
+  @if (historyCell(); as cell) {
+    <section
+      class="panel list"
+      aria-labelledby="cell-history-title"
+      [attr.aria-busy]="historyLoading()"
+    >
+      <div class="list-heading">
+        <h2 id="cell-history-title">
+          Historial de estancias · {{ cell.codigo }}
+          <span class="count">{{ historyTotal() }}</span>
+        </h2>
+      </div>
+      @if (historyLoading()) {
+        <p class="empty" role="status">Cargando historial…</p>
+      } @else if (historyError()) {
+        <p class="notice error" role="alert">{{ historyError() }}</p>
+      } @else if (!historyItems().length) {
+        <p class="empty">Esta celda no tiene estancias registradas.</p>
+      } @else {
+        <div class="table-scroll">
+          <table>
+            <caption class="sr-only">Historial de estancias de la celda {{ cell.codigo }}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Placa</th>
+                <th scope="col">Entrada</th>
+                <th scope="col">Salida</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (stay of historyItems(); track stay.id) {
+                <tr>
+                  <th scope="row">{{ stay.vehiculo.placa }}</th>
+                  <td>{{ fechaEstancia(stay.entrada) }}</td>
+                  <td>{{ fechaEstancia(stay.salida) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <nav class="pagination" aria-label="Paginación del historial de estancias de la celda">
+          <span>Página {{ historyPage() }} de {{ historyPages() }}</span>
+          <div class="actions">
+            <button
+              type="button"
+              (click)="verHistorial(cell, historyOffset() - historyLimit)"
+              [disabled]="historyLoading() || historyOffset() === 0"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              (click)="verHistorial(cell, historyOffset() + historyLimit)"
+              [disabled]="historyLoading() || historyOffset() + historyLimit >= historyTotal()"
+            >
+              Siguiente
+            </button>
+          </div>
+        </nav>
+      }
+    </section>
+  }
 </section>
