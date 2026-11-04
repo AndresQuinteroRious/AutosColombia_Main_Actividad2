@@ -634,9 +634,10 @@ Migración: `4be64630245c`
 
 ### Relación Vehículo-Celda
 
-Los vehículos ahora pueden tener una celda asignada directamente mediante el campo
-`celda_id` (opcional, nullable). Esto permite asignar vehículos a celdas específicas
-sin crear una estancia de entrada/salida.
+La columna `celda_id` se conserva en el modelo y en la base de datos para los datos
+existentes, pero ya no forma parte de los esquemas públicos de vehículos: la API no
+la acepta al crear o actualizar vehículos ni la incluye en sus respuestas. La pantalla
+de vehículos tampoco permite asignar una celda directamente.
 
 Migración: `8ec44c2d86d8`
 

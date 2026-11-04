@@ -3,7 +3,13 @@ import { inject, Injectable } from '@angular/core';
 import { EMPTY, Observable, expand, reduce, throwError, timeout } from 'rxjs';
 import { Celda } from '../models/celda';
 import { Operador } from '../models/operador';
-import { EntradaCrear, SalidaCrear, Estancia, EstadoVehiculo } from '../models/estancia';
+import {
+  EntradaCrear,
+  SalidaCrear,
+  Estancia,
+  EstanciaAbierta,
+  EstadoVehiculo,
+} from '../models/estancia';
 import { API_BASE_URL } from './api.service';
 import { CeldasService } from './celdas.service';
 import { OperadoresService } from './operadores.service';
@@ -42,6 +48,13 @@ export class EstanciasService {
   consultar(placa: string) {
     return this.http
       .get<EstadoVehiculo>(`${this.base}/vehiculo/${encodeURIComponent(placa)}`, {
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(timeout(15000));
+  }
+  abiertas() {
+    return this.http
+      .get<EstanciaAbierta[]>(`${this.base}/abiertas`, {
         headers: this.getAuthHeaders(),
       })
       .pipe(timeout(15000));

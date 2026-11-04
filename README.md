@@ -122,6 +122,7 @@ Esta etapa no modifica modelos, tablas, migraciones ni Angular.
 | `POST /estancias/entrada` | placa, celda_id, operador_id | 201, estancia registrada |
 | `POST /estancias/salida` | placa, operador_id | 200, estancia cerrada |
 | `GET /estancias/vehiculo/{placa}` | placa en la ruta | 200, vehículo y estado actual; 404 si no está registrado |
+| `GET /estancias/abiertas` | — | 200, lista de estancias abiertas con vehículo y celda |
 
 Las respuestas de entrada/salida contienen `id`, `vehiculo_id`, `celda_id`,
 `entrada`, `salida`, `operador_entrada_id` y `operador_salida_id`. Las fechas se
@@ -133,6 +134,9 @@ y `estancia`. Cuando está fuera, `estancia` es null. Cuando está dentro, conti
 los siete campos de la estancia y `celda` con id, codigo y tipo; la fecha de ingreso
 está en `estancia.entrada`. La consulta usa una sola sentencia para obtener ese
 estado consistente. No devuelve historial ni permite editar o borrar estancias.
+La ruta `/estancias/abiertas` lista las estancias que aún no tienen salida,
+ordenadas de la más reciente a la más antigua, e incluye los datos de vehículo y
+celda para la pantalla de inicio.
 
 Las placas se recortan y convierten a mayúsculas. Los ids deben ser enteros JSON
 positivos dentro del rango BIGINT; no se aceptan booleanos, cadenas numéricas,
@@ -1058,4 +1062,3 @@ de integración revirtieron sus transacciones. No se eliminaron registros previo
 Para esta modificación exclusivamente documental se revisan rutas, contratos y
 sintaxis de los bloques PowerShell; no se reinstalan dependencias, no se aplican
 migraciones y no se vuelven a ejecutar las suites ni las pruebas manuales.
-

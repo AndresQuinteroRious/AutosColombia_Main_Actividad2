@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
-from app.schemas.vehiculo import VehiculoActualizar, VehiculoCrear
+from app.schemas.vehiculo import VehiculoActualizar, VehiculoCrear, VehiculoRespuesta
 from app.services.vehiculo import VehiculoError, delete_vehicle
 
 
@@ -31,6 +31,35 @@ def test_patch_only_supplied_fields_and_no_id():
 def test_creation_requires_every_field():
     with pytest.raises(ValidationError):
         VehiculoCrear(placa="ABC123")
+
+
+@pytest.mark.parametrize("schema", [VehiculoCrear, VehiculoActualizar])
+def test_vehicle_schemas_reject_celda_id(schema):
+    payload = {
+        "placa": "ABC123",
+        "color": "Azul",
+        "modelo": 2025,
+        "marca": "Prueba",
+        "tipo": "AUTOMOVIL",
+        "celda_id": 1,
+    }
+    with pytest.raises(ValidationError):
+        schema(**payload)
+
+
+def test_vehicle_response_omits_celda_id():
+    response = VehiculoRespuesta.model_validate(
+        SimpleNamespace(
+            id=1,
+            placa="ABC123",
+            color="Azul",
+            modelo=2025,
+            marca="Prueba",
+            tipo="AUTOMOVIL",
+            celda_id=2,
+        )
+    )
+    assert "celda_id" not in response.model_dump()
 
 
 def test_delete_foreign_key_conflict_rolls_back_without_related_deletes():

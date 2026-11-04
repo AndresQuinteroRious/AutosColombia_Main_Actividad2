@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from contextlib import nullcontext
 from io import StringIO
 from pathlib import Path
 import importlib.util
@@ -10,7 +11,8 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.schema import CreateIndex, CreateTable
 
-from app.models import Base, Estancia, Operador
+from app.models import Base, Celda, Estancia, Operador, Vehiculo
+from app.services.estancia import ServicioEstancia
 
 ENTRADA = datetime(2026, 10, 19, 10, tzinfo=timezone.utc)
 
@@ -54,6 +56,42 @@ def test_operador_invalido_no_deja_cierre_parcial(operador):
         estancia.cerrar(ENTRADA, operador)
     assert estancia.salida is None
     assert estancia.operador_salida_id is None
+
+
+def test_listar_estancias_abiertas_incluye_vehiculo_y_celda_en_orden():
+    estancia = Estancia(
+        id=8,
+        vehiculo_id=11,
+        celda_id=5,
+        entrada=ENTRADA,
+        salida=None,
+        operador_entrada_id=7,
+    )
+    vehiculo = Vehiculo(
+        id=11, placa="ABC123", color="azul", modelo=2022, marca="Toyota", tipo="AUTOMOVIL"
+    )
+    celda = Celda(id=5, codigo="A-01", tipo="AUTOMOVIL")
+
+    class SessionStub:
+        statement = None
+
+        def begin(self):
+            return nullcontext()
+
+        def execute(self, statement):
+            self.statement = statement
+            return type("Result", (), {"all": lambda _self: [(estancia, vehiculo, celda)]})()
+
+    session = SessionStub()
+    abiertas = ServicioEstancia(session).abiertas()
+
+    assert len(abiertas) == 1
+    assert abiertas[0].vehiculo.placa == "ABC123"
+    assert abiertas[0].celda.codigo == "A-01"
+    assert abiertas[0].salida is None
+    sql = str(session.statement)
+    assert "estancia.salida IS NULL" in sql
+    assert "ORDER BY estancia.entrada DESC, estancia.id DESC" in sql
 
 
 def test_relaciones_y_columnas():

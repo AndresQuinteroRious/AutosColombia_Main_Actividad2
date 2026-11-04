@@ -3,7 +3,6 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { ApiService } from '../services/api.service';
-import { CeldasService } from '../services/celdas.service';
 import {
   ErrorApi,
   TIPOS_VEHICULO,
@@ -11,7 +10,6 @@ import {
   Vehiculo,
   VehiculoCrear,
 } from '../models/vehiculo';
-import { Celda, TipoCelda } from '../models/celda';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -29,11 +27,9 @@ type Field = keyof VehiculoCrear;
 })
 export class Vehiculos {
   private readonly api = inject(ApiService);
-  private readonly celdasApi = inject(CeldasService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   readonly types = TIPOS_VEHICULO;
-  readonly celdas = signal<Celda[]>([]);
   readonly fields: { key: 'placa' | 'color' | 'modelo' | 'marca'; label: string; type: string }[] =
     [
       { key: 'placa', label: 'Placa', type: 'text' },
@@ -50,7 +46,6 @@ export class Vehiculos {
       Validators.required,
       (control) => (this.types.includes(control.value) ? null : { type: true }),
     ]),
-    celda_id: this.fb.control<number | null>(null),
   });
   readonly items = signal<Vehiculo[]>([]);
   readonly filteredItems = computed(() => {
@@ -79,18 +74,6 @@ export class Vehiculos {
 
   constructor() {
     this.load();
-    this.loadCeldas();
-  }
-
-  loadCeldas(): void {
-    this.celdasApi
-      .list(0, 100)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (data) => {
-          this.celdas.set(data.items);
-        },
-      });
   }
 
   load(offset = this.offset()): void {
@@ -164,7 +147,7 @@ export class Vehiculos {
     if (control.errors['server']) return String(control.errors['server']);
     if (control.errors['required']) return 'Este campo es obligatorio y no puede estar vacío.';
     if (field === 'modelo') return 'Introduce un año entero entre 1 y 9999.';
-    if (field === 'tipo') return 'Selecciona una celda válida.';
+    if (field === 'tipo') return 'Selecciona un tipo válido.';
     return 'Revisa este campo.';
   }
 
@@ -185,9 +168,6 @@ export class Vehiculos {
       modelo: value.modelo!,
       tipo: value.tipo as TipoVehiculo,
     };
-    if (value.celda_id) {
-      payload.celda_id = value.celda_id;
-    }
     console.log('Payload a enviar:', payload);
     this.form.controls.placa.setValue(payload.placa);
     this.saving.set(true);
@@ -274,47 +254,6 @@ export class Vehiculos {
     if (error.status === 422)
       return 'Revisa los datos: hay campos que no cumplen las validaciones.';
     return 'No se pudo conectar con el servicio. Comprueba la conexión y actualiza el listado antes de reintentar.';
-  }
-
-  buscarPorCodigo(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const codigo = input.value.trim();
-
-    if (!codigo) {
-      return;
-    }
-
-    const celdaEncontrada = this.celdas().find(c => c.codigo === codigo);
-    if (celdaEncontrada) {
-      this.form.controls.celda_id.setValue(celdaEncontrada.id);
-      this.actionError.set('');
-      this.success.set(`Celda ${codigo}: ${celdaEncontrada.tipo}`);
-    } else {
-      this.actionError.set(`No existe celda con código ${codigo}.`);
-    }
-  }
-
-  seleccionarCelda(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const codigo = select.value;
-
-    if (!codigo) {
-      this.form.controls.celda_id.setValue(null);
-      return;
-    }
-
-    const celdaEncontrada = this.celdas().find(c => c.codigo === codigo);
-    if (celdaEncontrada) {
-      this.form.controls.celda_id.setValue(celdaEncontrada.id);
-      this.actionError.set('');
-      this.success.set(`Celda seleccionada: ${celdaEncontrada.codigo} - ${celdaEncontrada.tipo}`);
-    }
-  }
-
-  getCeldaCodigo(celdaId: number | undefined): string {
-    if (!celdaId) return '-';
-    const celda = this.celdas().find(c => c.id === celdaId);
-    return celda ? celda.codigo : '-';
   }
 
   aplicarFiltros(): void {

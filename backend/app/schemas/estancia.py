@@ -42,6 +42,11 @@ class EstanciaAbiertaRespuesta(EstanciaRespuesta):
     celda: CeldaRespuesta
 
 
+class EstanciaAbiertaListadoRespuesta(EstanciaRespuesta):
+    vehiculo: VehiculoRespuesta
+    celda: CeldaRespuesta
+
+
 class EstadoVehiculoRespuesta(BaseModel):
     vehiculo: VehiculoRespuesta
     esta_dentro: bool

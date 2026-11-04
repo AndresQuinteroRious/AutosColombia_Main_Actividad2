@@ -1,4 +1,5 @@
 {
+  "/celdas/estado": { "target": "http://127.0.0.1:8000" },
   "/estancias/**": { "target": "http://127.0.0.1:8000" },
   "/operadores": { "target": "http://127.0.0.1:8000" },
   "/operadores/**": { "target": "http://127.0.0.1:8000" },

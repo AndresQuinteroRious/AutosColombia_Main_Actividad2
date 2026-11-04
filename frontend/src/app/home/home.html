@@ -62,6 +62,50 @@
   </div>
 </section>
 
+<section class="estancias-section" aria-labelledby="estancias-title">
+  <div class="estancias-header">
+    <div>
+      <h2 id="estancias-title">Estancias abiertas</h2>
+      <p class="estancias-subtitle">Vehículos que permanecen dentro del parqueadero</p>
+    </div>
+    @if (!estanciasLoading() && !estanciasError()) {
+      <span class="estancias-count">{{ estanciasAbiertas().length }} vehículos dentro</span>
+    }
+  </div>
+
+  @if (estanciasLoading()) {
+    <p class="estancias-message" role="status">Cargando estancias abiertas…</p>
+  } @else if (estanciasError()) {
+    <p class="estancias-error" role="alert">{{ estanciasError() }}</p>
+  } @else if (!estanciasAbiertas().length) {
+    <p class="estancias-empty">No hay vehículos dentro del parqueadero.</p>
+  } @else {
+    <div class="estancias-grid">
+      @for (estancia of estanciasAbiertas(); track estancia.id) {
+        <article class="estancia-card">
+          <div class="estancia-card-heading">
+            <h3>{{ estancia.vehiculo.placa }}</h3>
+            <span class="estancia-status">Dentro</span>
+          </div>
+          <p class="estancia-vehicle">
+            {{ estancia.vehiculo.marca }} {{ estancia.vehiculo.modelo }}
+          </p>
+          <dl class="estancia-details">
+            <div>
+              <dt>Celda</dt>
+              <dd>{{ estancia.celda.codigo }} · {{ estancia.celda.tipo | titlecase }}</dd>
+            </div>
+            <div>
+              <dt>Ingreso</dt>
+              <dd>{{ estancia.entrada | date: 'dd/MM/yyyy, HH:mm' }}</dd>
+            </div>
+          </dl>
+        </article>
+      }
+    </div>
+  }
+</section>
+
 <section class="overview" aria-labelledby="overview-title">
   <div class="section-heading">
     <h2 id="overview-title">Una gestión más organizada</h2>

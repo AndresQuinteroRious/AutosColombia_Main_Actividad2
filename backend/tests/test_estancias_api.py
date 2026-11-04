@@ -8,7 +8,7 @@ def test_openapi_y_salud():
     with TestClient(app) as client:
         schema = client.get('/openapi.json').json()
         for path, method in [('/estancias/entrada', 'post'), ('/estancias/salida', 'post'),
-                             ('/estancias/vehiculo/{placa}', 'get')]:
+                             ('/estancias/vehiculo/{placa}', 'get'), ('/estancias/abiertas', 'get')]:
             assert method in schema['paths'][path]
         assert client.get('/health').json() == {'status': 'ok'}
 

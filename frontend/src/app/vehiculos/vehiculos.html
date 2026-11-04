@@ -82,19 +82,6 @@
               </select>
               <span class="field-error" id="tipo-error">{{ fieldError('tipo') }}</span>
             </div>
-            <div class="field">
-              <label for="celdaSelect">Seleccionar celda</label>
-              <select
-                id="celdaSelect"
-                (change)="seleccionarCelda($event)"
-              >
-                <option value="">Selecciona una celda</option>
-                @for (celda of celdas(); track celda.id) {
-                  <option [value]="celda.codigo">{{ celda.codigo }} - {{ celda.tipo }}</option>
-                }
-              </select>
-              <input type="hidden" formControlName="celda_id" />
-            </div>
           </div>
           <div class="actions">
             <button class="primary" type="submit">
@@ -156,7 +143,6 @@
               <th scope="col">Marca</th>
               <th scope="col">Año</th>
               <th scope="col">Color</th>
-              <th scope="col">Celda</th>
               <th scope="col">Acciones</th>
             </tr>
           </thead>
@@ -167,9 +153,6 @@
                 <td>{{ vehicle.marca }}</td>
                 <td>{{ vehicle.modelo }}</td>
                 <td>{{ vehicle.color }}</td>
-                <td>
-                  <span class="type-tag">{{ getCeldaCodigo(vehicle.celda_id) }}</span>
-                </td>
                 <td class="row-actions">
                   <button
                     type="button"

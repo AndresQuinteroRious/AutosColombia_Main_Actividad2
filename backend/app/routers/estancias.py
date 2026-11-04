@@ -4,7 +4,10 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_session
-from app.schemas.estancia import EntradaCrear, SalidaCrear, EstanciaRespuesta, EstadoVehiculoRespuesta
+from app.schemas.estancia import (
+    EntradaCrear, SalidaCrear, EstanciaRespuesta, EstanciaAbiertaListadoRespuesta,
+    EstadoVehiculoRespuesta,
+)
 from app.schemas.vehiculo import Placa
 from app.services.estancia import ServicioEstancia
 
@@ -25,3 +28,8 @@ def salida(data: SalidaCrear, session: DatabaseSession) -> EstanciaRespuesta:
 @router.get("/vehiculo/{placa}", response_model=EstadoVehiculoRespuesta)
 def consultar(placa: Placa, session: DatabaseSession) -> EstadoVehiculoRespuesta:
     return ServicioEstancia(session).consultar(placa)
+
+
+@router.get("/abiertas", response_model=list[EstanciaAbiertaListadoRespuesta])
+def abiertas(session: DatabaseSession) -> list[EstanciaAbiertaListadoRespuesta]:
+    return ServicioEstancia(session).abiertas()

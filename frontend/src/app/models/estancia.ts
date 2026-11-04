@@ -24,3 +24,7 @@ export interface EstadoVehiculo {
   esta_dentro: boolean;
   estancia: (Estancia & { celda: Celda }) | null;
 }
+export interface EstanciaAbierta extends Estancia {
+  vehiculo: Vehiculo;
+  celda: Celda;
+}

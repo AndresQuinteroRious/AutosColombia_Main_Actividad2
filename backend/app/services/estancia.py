@@ -9,7 +9,7 @@ from app.models import Celda, Estancia, Operador, Vehiculo, required_text
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear, SalidaCrear, EstanciaRespuesta, EstanciaAbiertaRespuesta,
-    EstadoVehiculoRespuesta,
+    EstanciaAbiertaListadoRespuesta, EstadoVehiculoRespuesta,
 )
 from app.schemas.vehiculo import VehiculoRespuesta
 
@@ -120,3 +120,21 @@ class ServicioEstancia:
             )
         return EstadoVehiculoRespuesta(vehiculo=VehiculoRespuesta.model_validate(vehiculo),
                                        esta_dentro=estancia is not None, estancia=abierta)
+
+    @transaccion
+    def abiertas(self) -> list[EstanciaAbiertaListadoRespuesta]:
+        rows = self.session.execute(
+            select(Estancia, Vehiculo, Celda)
+            .join(Vehiculo, Vehiculo.id == Estancia.vehiculo_id)
+            .join(Celda, Celda.id == Estancia.celda_id)
+            .where(Estancia.salida.is_(None))
+            .order_by(Estancia.entrada.desc(), Estancia.id.desc())
+        ).all()
+        return [
+            EstanciaAbiertaListadoRespuesta(
+                **EstanciaRespuesta.model_validate(estancia).model_dump(),
+                vehiculo=VehiculoRespuesta.model_validate(vehiculo),
+                celda=CeldaRespuesta.model_validate(celda),
+            )
+            for estancia, vehiculo, celda in rows
+        ]

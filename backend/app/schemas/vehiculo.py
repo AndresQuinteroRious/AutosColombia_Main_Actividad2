@@ -12,7 +12,6 @@ TipoVehiculo = Annotated[
     Literal["MOTO", "AUTOMOVIL", "CAMIONETA", "FURGON", "CAMION", "OTROS"],
     BeforeValidator(lambda value: required_text(value, "tipo")),
 ]
-CeldaId = Annotated[int, Field(ge=1, le=9223372036854775807)]
 
 
 class VehiculoCrear(BaseModel):
@@ -23,7 +22,6 @@ class VehiculoCrear(BaseModel):
     modelo: Anio
     marca: Texto
     tipo: TipoVehiculo
-    celda_id: CeldaId | None = None
 
 
 class VehiculoActualizar(BaseModel):
@@ -34,7 +32,6 @@ class VehiculoActualizar(BaseModel):
     modelo: Anio | None = None
     marca: Texto | None = None
     tipo: TipoVehiculo | None = None
-    celda_id: CeldaId | None = None
 
     @field_validator("*", mode="before")
     @classmethod

@@ -147,6 +147,134 @@ svg {
   font-size: 12px;
   color: #526c60;
 }
+
+.estancias-section {
+  padding: 0 0 56px;
+}
+
+.estancias-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+
+.estancias-section h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.estancias-subtitle {
+  margin: 6px 0 0;
+  color: #627168;
+  font-size: 14px;
+}
+
+.estancias-count {
+  padding: 6px 12px;
+  border: 1px solid #bde0cb;
+  border-radius: 20px;
+  background: #e6f4ec;
+  color: #1b6b3a;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.estancias-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 12px;
+}
+
+.estancia-card {
+  padding: 17px;
+  border: 1px solid #e0e5de;
+  border-radius: 14px;
+  background: #fff;
+}
+
+.estancia-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.estancia-card h3 {
+  margin: 0;
+  color: #1a3d2b;
+  font-size: 16px;
+  letter-spacing: 0.4px;
+}
+
+.estancia-status {
+  padding: 3px 8px;
+  border-radius: 20px;
+  background: #e6f4ec;
+  color: #1b6b3a;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.estancia-vehicle {
+  margin: 8px 0 14px;
+  color: #627168;
+  font-size: 13px;
+}
+
+.estancia-details {
+  display: grid;
+  gap: 9px;
+  margin: 0;
+}
+
+.estancia-details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.estancia-details dt {
+  color: #627168;
+}
+
+.estancia-details dd {
+  margin: 0;
+  color: #3a5244;
+  font-weight: 600;
+  text-align: right;
+}
+
+.estancias-message,
+.estancias-empty,
+.estancias-error {
+  margin: 0;
+  padding: 16px 20px;
+  border-radius: 12px;
+  color: #627168;
+  font-size: 14px;
+}
+
+.estancias-message,
+.estancias-empty {
+  border: 1px solid #dce5dc;
+  background: #f7f9f7;
+}
+
+.estancias-error {
+  border: 1px solid #f5c6c3;
+  background: #fff4f3;
+  color: #8c2a24;
+}
+
+/* ═══════════════════════════════════════
+   SECCIÓN OVERVIEW
+═══════════════════════════════════════ */
 .overview {
   padding-bottom: 68px;
 }
@@ -200,6 +328,10 @@ h3 {
   font-size: 12px;
   color: #627168;
 }
+
+/* ═══════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════ */
 @media (max-width: 760px) {
   .page-shell {
     padding: 0 24px;
