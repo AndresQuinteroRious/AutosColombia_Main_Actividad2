@@ -311,12 +311,23 @@ transacciones). Reutiliza el modelo `Vehiculo`, `get_session()` y las tablas exi
 | `POST /vehiculos` | 201 y vehículo registrado, incluido su id |
 | `GET /vehiculos?offset=0&limit=20` | 200 con `items`, `total`, `offset` y `limit` |
 | `GET /vehiculos/{id}` | 200 y vehículo, o 404 |
+| `PUT /vehiculos/{id}/mensualidad` | 200 y mensualidad activa, o 404 |
 | `PATCH /vehiculos/{id}` | 200 y vehículo actualizado, o 404 |
 | `DELETE /vehiculos/{id}` | 204 sin cuerpo, o 404 |
 
 La lista se ordena por id ascendente; `offset` empieza en 0 y `limit` admite de
 1 a 100 (20 por defecto). `total` es el número total de vehículos, no solo el de
 la página. Los ids deben ser enteros positivos dentro del rango de BIGINT.
+Cada elemento incluye `estado_mensualidad`, el estado del registro más reciente
+de `mensualidad` asociado mediante `mensualidad.id_vehiculo`. Si no tiene registros,
+el campo es `null`. La tabla `mensualidad` debe existir en la base de datos; no
+forma parte de las migraciones administradas por este proyecto.
+
+Al crear un vehículo, `estado_mensualidad` permite elegir `activo` o `desactivado`;
+el backend crea el vehículo y su fila en `mensualidad` en una sola transacción.
+PATCH acepta el mismo campo y actualiza el registro de mensualidad más reciente.
+`PUT /vehiculos/{id}/mensualidad` activa la mensualidad del vehículo. Inserta un
+registro si todavía no existe, o actualiza el más reciente. La operación es idempotente.
 
 Al crear se requieren placa, color, modelo, marca y tipo. El año debe ser un
 entero JSON entre 1 y 9999; no se aceptan cadenas, booleanos ni decimales. Los

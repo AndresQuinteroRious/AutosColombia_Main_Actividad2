@@ -13,9 +13,10 @@ TipoVehiculo = Annotated[
     BeforeValidator(lambda value: required_text(value, "tipo")),
 ]
 CeldaId = Annotated[int, Field(ge=1, le=9223372036854775807)]
+EstadoMensualidad = Literal["activo", "desactivado"]
 
 
-class VehiculoCrear(BaseModel):
+class VehiculoBase(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     placa: Placa
@@ -24,6 +25,10 @@ class VehiculoCrear(BaseModel):
     marca: Texto
     tipo: TipoVehiculo
     celda_id: CeldaId | None = None
+
+
+class VehiculoCrear(VehiculoBase):
+    estado_mensualidad: EstadoMensualidad = "desactivado"
 
 
 class VehiculoActualizar(BaseModel):
@@ -35,6 +40,7 @@ class VehiculoActualizar(BaseModel):
     marca: Texto | None = None
     tipo: TipoVehiculo | None = None
     celda_id: CeldaId | None = None
+    estado_mensualidad: EstadoMensualidad | None = None
 
     @field_validator("*", mode="before")
     @classmethod
@@ -44,9 +50,16 @@ class VehiculoActualizar(BaseModel):
         return value
 
 
-class VehiculoRespuesta(VehiculoCrear):
+class VehiculoRespuesta(VehiculoBase):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
     id: int
+    estado_mensualidad: EstadoMensualidad | None = None
+
+
+class MensualidadRespuesta(BaseModel):
+    id_mensualidad: int
+    id_vehiculo: int
+    estado: EstadoMensualidad
 
 
 class VehiculosPagina(BaseModel):

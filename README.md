@@ -891,6 +891,11 @@ La bienvenida permanece en **Inicio**. La ruta de pantalla `/gestion/vehiculos`
 es distinta de la ruta API `/vehiculos` para evitar conflictos con el proxy.
 
 - El listado usa páginas de 10 vehículos, ordenadas por id, con Anterior y Siguiente.
+- La tabla **Vehículos registrados** muestra **Estado mensualidad** en lugar de
+  **Celda**. Si no hay un registro activo, ofrece **Activar mensualidad**, que
+  registra o reactiva el estado en la tabla `mensualidad` por id de vehículo.
+- El formulario de vehículo permite elegir **Con mensualidad** o **Sin mensualidad**
+  al registrar y editar; el backend guarda el estado junto al id del vehículo.
 - **Nuevo vehículo** abre un formulario reactivo con placa, marca, año, color y tipo.
   Todos son obligatorios; el año es entero entre 1 y 9999. La placa se recorta y
   convierte a mayúsculas. Los tipos son MOTO, AUTOMOVIL y CAMIONETA.

@@ -3,15 +3,14 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { ApiService } from '../services/api.service';
-import { CeldasService } from '../services/celdas.service';
 import {
   ErrorApi,
+  EstadoMensualidad,
   TIPOS_VEHICULO,
   TipoVehiculo,
   Vehiculo,
   VehiculoCrear,
 } from '../models/vehiculo';
-import { Celda, TipoCelda } from '../models/celda';
 import { RolBadge } from '../shared/rol-badge/rol-badge';
 
 const nonBlank: ValidatorFn = (control) =>
@@ -20,7 +19,7 @@ const year: ValidatorFn = (control) =>
   Number.isInteger(control.value) && control.value >= 1 && control.value <= 9999
     ? null
     : { year: true };
-type Field = keyof VehiculoCrear;
+type Field = 'placa' | 'color' | 'modelo' | 'marca' | 'tipo';
 
 @Component({
   selector: 'app-vehiculos',
@@ -30,11 +29,9 @@ type Field = keyof VehiculoCrear;
 })
 export class Vehiculos {
   private readonly api = inject(ApiService);
-  private readonly celdasApi = inject(CeldasService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   readonly types = TIPOS_VEHICULO;
-  readonly celdas = signal<Celda[]>([]);
   readonly fields: { key: 'placa' | 'color' | 'modelo' | 'marca'; label: string; type: string }[] =
     [
       { key: 'placa', label: 'Placa', type: 'text' },
@@ -51,7 +48,10 @@ export class Vehiculos {
       Validators.required,
       (control) => (this.types.includes(control.value) ? null : { type: true }),
     ]),
-    celda_id: this.fb.control<number | null>(null),
+    estado_mensualidad: this.fb.nonNullable.control<EstadoMensualidad>('desactivado', [
+      Validators.required,
+      (control) => ['activo', 'desactivado'].includes(control.value) ? null : { status: true },
+    ]),
   });
   readonly items = signal<Vehiculo[]>([]);
   readonly filteredItems = computed(() => {
@@ -80,18 +80,6 @@ export class Vehiculos {
 
   constructor() {
     this.load();
-    this.loadCeldas();
-  }
-
-  loadCeldas(): void {
-    this.celdasApi
-      .list(0, 100)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (data) => {
-          this.celdas.set(data.items);
-        },
-      });
   }
 
   load(offset = this.offset()): void {
@@ -142,7 +130,14 @@ export class Vehiculos {
         next: (data) => {
           this.loading.set(false);
           this.editing.set(data.id);
-          this.form.reset(data);
+          this.form.reset({
+            placa: data.placa,
+            color: data.color,
+            modelo: data.modelo,
+            marca: data.marca,
+            tipo: data.tipo,
+            estado_mensualidad: data.estado_mensualidad ?? 'desactivado',
+          });
           this.showForm.set(true);
         },
         error: (error) => {
@@ -165,7 +160,7 @@ export class Vehiculos {
     if (control.errors['server']) return String(control.errors['server']);
     if (control.errors['required']) return 'Este campo es obligatorio y no puede estar vacío.';
     if (field === 'modelo') return 'Introduce un año entero entre 1 y 9999.';
-    if (field === 'tipo') return 'Selecciona una celda válida.';
+    if (field === 'tipo') return 'Selecciona un tipo de vehículo válido.';
     return 'Revisa este campo.';
   }
 
@@ -185,10 +180,8 @@ export class Vehiculos {
       marca: value.marca.trim(),
       modelo: value.modelo!,
       tipo: value.tipo as TipoVehiculo,
+      estado_mensualidad: value.estado_mensualidad,
     };
-    if (value.celda_id) {
-      payload.celda_id = value.celda_id;
-    }
     console.log('Payload a enviar:', payload);
     this.form.controls.placa.setValue(payload.placa);
     this.saving.set(true);
@@ -277,45 +270,33 @@ export class Vehiculos {
     return 'No se pudo conectar con el servicio. Comprueba la conexión y actualiza el listado antes de reintentar.';
   }
 
-  buscarPorCodigo(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const codigo = input.value.trim();
-
-    if (!codigo) {
-      return;
-    }
-
-    const celdaEncontrada = this.celdas().find(c => c.codigo === codigo);
-    if (celdaEncontrada) {
-      this.form.controls.celda_id.setValue(celdaEncontrada.id);
-      this.actionError.set('');
-      this.success.set(`Celda ${codigo}: ${celdaEncontrada.tipo}`);
-    } else {
-      this.actionError.set(`No existe celda con código ${codigo}.`);
-    }
+  estadoMensualidad(vehicle: Vehiculo): string {
+    return vehicle.estado_mensualidad === 'activo' ? 'Con mensualidad' : 'Sin mensualidad';
   }
 
-  seleccionarCelda(event: Event): void {
-    const select = event.target as HTMLSelectElement;
-    const codigo = select.value;
-
-    if (!codigo) {
-      this.form.controls.celda_id.setValue(null);
-      return;
-    }
-
-    const celdaEncontrada = this.celdas().find(c => c.codigo === codigo);
-    if (celdaEncontrada) {
-      this.form.controls.celda_id.setValue(celdaEncontrada.id);
-      this.actionError.set('');
-      this.success.set(`Celda seleccionada: ${celdaEncontrada.codigo} - ${celdaEncontrada.tipo}`);
-    }
-  }
-
-  getCeldaCodigo(celdaId: number | undefined): string {
-    if (!celdaId) return '-';
-    const celda = this.celdas().find(c => c.id === celdaId);
-    return celda ? celda.codigo : '-';
+  activarMensualidad(vehicle: Vehiculo): void {
+    if (this.busy() || vehicle.estado_mensualidad === 'activo') return;
+    this.saving.set(true);
+    this.actionError.set('');
+    this.success.set('');
+    this.api
+      .activateMonthlyStatus(vehicle.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.success.set(`Mensualidad activada para el vehículo ${vehicle.placa}.`);
+          this.load();
+        },
+        error: (error: HttpErrorResponse) => {
+          this.saving.set(false);
+          this.actionError.set(
+            error.status === 404
+              ? 'El vehículo ya no existe. Actualiza el listado.'
+              : 'No se pudo activar la mensualidad. Actualiza el listado e inténtalo de nuevo.',
+          );
+        },
+      });
   }
 
   aplicarFiltros(): void {

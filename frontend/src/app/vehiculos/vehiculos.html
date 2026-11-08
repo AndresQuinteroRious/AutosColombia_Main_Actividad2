@@ -84,17 +84,11 @@
               <span class="field-error" id="tipo-error">{{ fieldError('tipo') }}</span>
             </div>
             <div class="field">
-              <label for="celdaSelect">Seleccionar celda</label>
-              <select
-                id="celdaSelect"
-                (change)="seleccionarCelda($event)"
-              >
-                <option value="">Selecciona una celda</option>
-                @for (celda of celdas(); track celda.id) {
-                  <option [value]="celda.codigo">{{ celda.codigo }} - {{ celda.tipo }}</option>
-                }
+              <label for="estado_mensualidad">Mensualidad</label>
+              <select id="estado_mensualidad" formControlName="estado_mensualidad" required>
+                <option value="activo">Con mensualidad</option>
+                <option value="desactivado">Sin mensualidad</option>
               </select>
-              <input type="hidden" formControlName="celda_id" />
             </div>
           </div>
           <div class="actions">
@@ -157,7 +151,7 @@
               <th scope="col">Marca</th>
               <th scope="col">Año</th>
               <th scope="col">Color</th>
-              <th scope="col">Celda</th>
+              <th scope="col">Estado mensualidad</th>
               <th scope="col">Acciones</th>
             </tr>
           </thead>
@@ -169,9 +163,19 @@
                 <td>{{ vehicle.modelo }}</td>
                 <td>{{ vehicle.color }}</td>
                 <td>
-                  <span class="type-tag">{{ getCeldaCodigo(vehicle.celda_id) }}</span>
+                  <span class="type-tag">{{ estadoMensualidad(vehicle) }}</span>
                 </td>
                 <td class="row-actions">
+                  @if (vehicle.estado_mensualidad !== 'activo') {
+                    <button
+                      type="button"
+                      (click)="activarMensualidad(vehicle)"
+                      [disabled]="busy()"
+                      [attr.aria-label]="'Activar mensualidad para ' + vehicle.placa"
+                    >
+                      Activar mensualidad
+                    </button>
+                  }
                   <button
                     type="button"
                     (click)="edit(vehicle)"
