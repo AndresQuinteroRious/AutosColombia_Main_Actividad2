@@ -22,6 +22,28 @@ class OperadorEntradaRespuesta(BaseModel):
     telefono: str
 
 
+class EstanciaHistorialItem(BaseModel):
+    id: int
+    placa: str
+    celda: str
+    operador_entrada: str
+    operador_salida: str | None
+    entrada: datetime
+    salida: datetime | None
+
+    @field_validator("entrada", "salida")
+    @classmethod
+    def fechas_utc(cls, value: datetime | None) -> datetime | None:
+        return value.astimezone(timezone.utc) if value is not None else None
+
+
+class EstanciasHistorialPagina(BaseModel):
+    items: list[EstanciaHistorialItem]
+    total: int
+    offset: int
+    limit: int
+
+
 class SalidaCrear(BaseModel):
     model_config = ConfigDict(extra="forbid")
     placa: Placa

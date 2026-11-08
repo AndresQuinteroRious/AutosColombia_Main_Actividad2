@@ -255,9 +255,14 @@ creada en la migración `68a8a3380d1d`.
 | GET `/novedades/{id}` | 200 o 404 |
 | PATCH `/novedades/{id}` | 200; solo campos enviados, sin id ni valores nulos |
 | DELETE `/novedades/{id}` | 204 sin cuerpo |
+| POST `/novedades/vehiculo` | requiere sesión; registra descripción, vehiculo_id y fecha local indicada |
+| GET `/novedades/historial` | requiere administrador; filtra por fecha_desde, fecha_hasta y placa |
 
-Al crear se requiere descripcion. La fecha se asigna automáticamente con la
-fecha y hora actual. Los textos no pueden estar vacíos.
+En el CRUD general se requiere descripcion y la fecha se asigna automáticamente.
+El registro desde Inicio requiere una sesión y guarda el vehículo, la descripción
+y la fecha seleccionada; las fechas se interpretan en America/Bogota. El historial
+del inicio solo admite administradores e incluye novedades anteriores sin vehículo,
+identificadas como «Sin vehículo asociado».
 
 PATCH aplica solo los campos enviados, rechaza valores nulos y campos desconocidos.
 Una novedad inexistente devuelve 404.
@@ -267,6 +272,7 @@ Una novedad inexistente devuelve 404.
 | Campo | Tipo | Restricciones |
 | --- | --- | --- |
 | id | BIGINT | PRIMARY KEY, IDENTITY |
+| vehiculo_id | BIGINT | NULL, FK `vehiculo.id`, ON DELETE SET NULL |
 | descripcion | TEXT | NOT NULL, no vacío |
 | fecha | DATETIME (timezone) | NOT NULL, valor por defecto: now() |
 

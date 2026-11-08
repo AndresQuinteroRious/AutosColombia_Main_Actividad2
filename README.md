@@ -127,6 +127,7 @@ la entrada.
 | `POST /estancias/entrada` | placa, celda_id, operador_id | 201, estancia registrada |
 | `POST /estancias/salida` | placa, operador_id | 200, estancia cerrada |
 | `GET /estancias/vehiculo/{placa}` | placa en la ruta | 200, vehículo y estado actual; 404 si no está registrado |
+| `GET /estancias/historial` | fecha_desde, fecha_hasta, placa, offset, limit opcionales | 200, página filtrada por fecha de entrada y placa |
 | `GET /estancias/celdas-disponibles` | token de sesión | 200, celdas sin estancia abierta |
 | `GET /estancias/operador-actual` | token de sesión | 200, operador asociado al usuario autenticado |
 
@@ -880,6 +881,14 @@ de Autos Colombia. Al cargar, la pantalla consulta `GET /health` mediante
 un error HTTP o de red, o una espera superior a 5 segundos muestran el error.
 La comprobación se realiza una vez al cargar: recarga la página para repetirla.
 Angular actualiza la página al guardar cambios.
+
+En Inicio, **Historial de estancias** permite filtrar por rango de fechas de entrada
+y por placa parcial. Las fechas se interpretan en America/Bogota y los resultados
+se presentan en páginas de 10 registros.
+
+Los usuarios con sesión también pueden registrar novedades de un vehículo por placa,
+descripción y fecha. El historial de novedades de Inicio, con filtros por fecha y
+placa, está disponible solo para administradores.
 
 El proxy de desarrollo de `frontend/proxy.conf.json`, activado en `angular.json`,
 redirige `/health`, `/vehiculos`, `/vehiculos/**`, `/celdas`, `/celdas/**`,

@@ -63,6 +63,129 @@
   </div>
 </section>
 
+<section class="history-panel novelty-panel" aria-labelledby="novelty-entry-title">
+  <div class="section-heading">
+    <h2 id="novelty-entry-title">Registrar novedad de vehículo</h2>
+    <p>Relaciona la novedad con una placa y la fecha en que ocurrió.</p>
+  </div>
+
+  @if (!isAuthenticated) {
+    <p class="history-message">Inicia sesión para registrar una novedad.</p>
+  } @else if (loadingVehiculosNovedad()) {
+    <p class="history-message" role="status">Cargando vehículos registrados…</p>
+  } @else if (errorVehiculosNovedad()) {
+    <p class="history-message error" role="alert">{{ errorVehiculosNovedad() }}</p>
+  } @else if (!vehiculosNovedad().length) {
+    <p class="history-message">No hay vehículos registrados para asociar.</p>
+  } @else {
+    <form class="history-filters novelty-form" [formGroup]="novedadForm" (ngSubmit)="registrarNovedad()">
+      <div class="field">
+        <label for="novelty-plate">Placa</label>
+        <select id="novelty-plate" formControlName="placa">
+          <option value="">Selecciona un vehículo</option>
+          @for (vehicle of vehiculosNovedad(); track vehicle.id) {
+            <option [value]="vehicle.placa">{{ vehicle.placa }} · {{ vehicle.marca }} {{ vehicle.modelo }}</option>
+          }
+        </select>
+        @if (novedadForm.controls.placa.touched && novedadForm.controls.placa.invalid) {
+          <span class="field-error">Selecciona la placa de un vehículo registrado.</span>
+        }
+      </div>
+      <div class="field">
+        <label for="novelty-date">Fecha de la novedad</label>
+        <input id="novelty-date" type="date" formControlName="fecha" />
+        @if (novedadForm.controls.fecha.touched && novedadForm.controls.fecha.invalid) {
+          <span class="field-error">Selecciona la fecha de la novedad.</span>
+        }
+      </div>
+      <div class="field novelty-description">
+        <label for="novelty-description">Descripción</label>
+        <textarea id="novelty-description" rows="3" formControlName="descripcion"></textarea>
+        @if (novedadForm.controls.descripcion.touched && novedadForm.controls.descripcion.invalid) {
+          <span class="field-error">Escribe una descripción para la novedad.</span>
+        }
+      </div>
+      <div class="history-actions">
+        <button class="primary" type="submit" [disabled]="savingNovedad()">
+          {{ savingNovedad() ? 'Guardando…' : 'Registrar novedad' }}
+        </button>
+      </div>
+    </form>
+  }
+  @if (errorNovedad()) {
+    <p class="history-message error" role="alert">{{ errorNovedad() }}</p>
+  }
+  @if (successNovedad()) {
+    <p class="history-message novelty-success" role="status">{{ successNovedad() }}</p>
+  }
+</section>
+
+@if (isAdmin) {
+  <section class="history-panel" aria-labelledby="novelty-history-title">
+    <div class="section-heading">
+      <h2 id="novelty-history-title">Historial de novedades</h2>
+      <p>Consulta las novedades registradas para los vehículos.</p>
+    </div>
+    <form class="history-filters" [formGroup]="historialNovedadForm" (ngSubmit)="buscarNovedades()">
+      <div class="field">
+        <label for="novelty-from">Desde</label>
+        <input id="novelty-from" type="date" formControlName="fecha_desde" />
+      </div>
+      <div class="field">
+        <label for="novelty-to">Hasta</label>
+        <input id="novelty-to" type="date" formControlName="fecha_hasta" />
+      </div>
+      <div class="field">
+        <label for="novelty-filter-plate">Placa</label>
+        <input id="novelty-filter-plate" type="search" formControlName="placa" placeholder="Ej. ABC123" />
+      </div>
+      <div class="history-actions">
+        <button class="primary" type="submit" [disabled]="loadingNovedades()">Consultar</button>
+        <button type="button" (click)="limpiarFiltrosNovedad()" [disabled]="loadingNovedades()">Limpiar</button>
+      </div>
+    </form>
+    @if (errorFiltrosNovedad()) {
+      <p class="history-message error" role="alert">{{ errorFiltrosNovedad() }}</p>
+    }
+    @if (errorNovedades()) {
+      <p class="history-message error" role="alert">{{ errorNovedades() }}</p>
+    }
+    @if (loadingNovedades()) {
+      <p class="history-message" role="status">Cargando historial…</p>
+    } @else if (!consultadoNovedades()) {
+      <p class="history-message">Usa los filtros para consultar el historial.</p>
+    } @else if (!novedades().length) {
+      <p class="history-message">No hay novedades para los filtros indicados.</p>
+    } @else {
+      <p class="history-count" role="status">{{ totalNovedades() }} novedades encontradas</p>
+      <div class="history-table-scroll">
+        <table class="history-table">
+          <caption class="sr-only">Historial de novedades de vehículos</caption>
+          <thead>
+            <tr><th scope="col">Fecha</th><th scope="col">Placa</th><th scope="col">Descripción</th></tr>
+          </thead>
+          <tbody>
+            @for (news of novedades(); track news.id) {
+              <tr>
+                <td>{{ fecha(news.fecha) }}</td>
+                <td>{{ news.placa || 'Sin vehículo asociado' }}</td>
+                <td class="novelty-description-cell">{{ news.descripcion }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <nav class="history-pagination" aria-label="Paginación del historial de novedades">
+        <span>Página {{ paginaNovedades() }} de {{ paginasNovedades() }}</span>
+        <div>
+          <button type="button" (click)="cargarNovedades(offsetNovedades() - limitNovedades)" [disabled]="loadingNovedades() || offsetNovedades() === 0">Anterior</button>
+          <button type="button" (click)="cargarNovedades(offsetNovedades() + limitNovedades)" [disabled]="loadingNovedades() || offsetNovedades() + limitNovedades >= totalNovedades()">Siguiente</button>
+        </div>
+      </nav>
+    }
+  </section>
+}
+
 <section class="overview" aria-labelledby="overview-title">
   <div class="section-heading">
     <h2 id="overview-title">Una gestión más organizada</h2>
@@ -85,4 +208,102 @@
       <p>Una visión clara para acompañar la operación diaria.</p>
     </article>
   </div>
+</section>
+
+<section class="history-panel" aria-labelledby="history-title">
+  <div class="section-heading">
+    <h2 id="history-title">Historial de estancias</h2>
+    <p>Consulta entradas y salidas por fecha y placa.</p>
+  </div>
+
+  <form class="history-filters" [formGroup]="historialForm" (ngSubmit)="buscarHistorial()">
+    <div class="field">
+      <label for="history-from">Desde</label>
+      <input id="history-from" type="date" formControlName="fecha_desde" />
+    </div>
+    <div class="field">
+      <label for="history-to">Hasta</label>
+      <input id="history-to" type="date" formControlName="fecha_hasta" />
+    </div>
+    <div class="field">
+      <label for="history-plate">Placa</label>
+      <input id="history-plate" type="search" formControlName="placa" placeholder="Ej. ABC123" />
+    </div>
+    <div class="history-actions">
+      <button class="primary" type="submit" [disabled]="loadingHistorial()">
+        {{ loadingHistorial() ? 'Consultando…' : 'Consultar historial' }}
+      </button>
+      <button type="button" (click)="limpiarFiltros()" [disabled]="loadingHistorial()">
+        Limpiar
+      </button>
+    </div>
+  </form>
+
+  @if (errorFiltros()) {
+    <p class="history-message error" role="alert">{{ errorFiltros() }}</p>
+  }
+  @if (errorHistorial()) {
+    <p class="history-message error" role="alert">{{ errorHistorial() }}</p>
+  }
+  @if (loadingHistorial()) {
+    <p class="history-message" role="status">Consultando el historial…</p>
+  } @else if (!consultado()) {
+    <p class="history-message">Indica uno o más filtros para consultar las estancias.</p>
+  } @else if (!registros().length) {
+    <p class="history-message">No se encontraron estancias con esos filtros.</p>
+  } @else {
+    <p class="history-count" role="status">{{ total() }} estancias encontradas</p>
+    <div class="history-table-scroll">
+      <table class="history-table">
+        <caption class="sr-only">Historial de entradas y salidas</caption>
+        <thead>
+          <tr>
+            <th scope="col">Placa</th>
+            <th scope="col">Celda</th>
+            <th scope="col">Entrada</th>
+            <th scope="col">Operador entrada</th>
+            <th scope="col">Salida</th>
+            <th scope="col">Operador salida</th>
+            <th scope="col">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (registro of registros(); track registro.id) {
+            <tr>
+              <th scope="row">{{ registro.placa }}</th>
+              <td>{{ registro.celda }}</td>
+              <td>{{ fecha(registro.entrada) }}</td>
+              <td>{{ registro.operador_entrada }}</td>
+              <td>{{ fecha(registro.salida) }}</td>
+              <td>{{ registro.operador_salida || '—' }}</td>
+              <td>
+                <span class="history-status" [class.open]="!registro.salida">
+                  {{ registro.salida ? 'Cerrada' : 'Abierta' }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <nav class="history-pagination" aria-label="Paginación del historial">
+      <span>Página {{ pagina() }} de {{ paginas() }}</span>
+      <div>
+        <button
+          type="button"
+          (click)="cargarHistorial(offset() - limit)"
+          [disabled]="loadingHistorial() || offset() === 0"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          (click)="cargarHistorial(offset() + limit)"
+          [disabled]="loadingHistorial() || offset() + limit >= total()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </nav>
+  }
 </section>

@@ -1,6 +1,7 @@
 from typing import Annotated
+from datetime import date
 
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_session
@@ -9,6 +10,7 @@ from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear,
     EstanciaRespuesta,
+    EstanciasHistorialPagina,
     EstadoVehiculoRespuesta,
     OperadorEntradaRespuesta,
     SalidaCrear,
@@ -51,6 +53,18 @@ def celdas_disponibles(
 ) -> list[CeldaRespuesta]:
     del user
     return ServicioEstancia(session).celdas_disponibles()
+
+
+@router.get("/historial", response_model=EstanciasHistorialPagina)
+def historial(
+    session: DatabaseSession,
+    fecha_desde: Annotated[date | None, Query()] = None,
+    fecha_hasta: Annotated[date | None, Query()] = None,
+    placa: Annotated[str | None, Query(max_length=20)] = None,
+    offset: Annotated[int, Query(ge=0, le=9223372036854775807)] = 0,
+    limit: Annotated[int, Query(ge=1, le=100)] = 10,
+) -> EstanciasHistorialPagina:
+    return ServicioEstancia(session).historial(fecha_desde, fecha_hasta, placa, offset, limit)
 
 
 @router.post("/salida", response_model=EstanciaRespuesta)

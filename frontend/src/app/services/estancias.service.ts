@@ -3,7 +3,14 @@ import { inject, Injectable } from '@angular/core';
 import { EMPTY, Observable, expand, reduce, throwError, timeout } from 'rxjs';
 import { Celda } from '../models/celda';
 import { Operador } from '../models/operador';
-import { EntradaCrear, SalidaCrear, Estancia, EstadoVehiculo } from '../models/estancia';
+import {
+  EntradaCrear,
+  Estancia,
+  EstanciasHistorialFiltros,
+  EstadoVehiculo,
+  EstanciasHistorialPagina,
+  SalidaCrear,
+} from '../models/estancia';
 import { Vehiculo } from '../models/vehiculo';
 import { API_BASE_URL, ApiService } from './api.service';
 import { OperadoresService } from './operadores.service';
@@ -42,6 +49,20 @@ export class EstanciasService {
   consultar(placa: string) {
     return this.http
       .get<EstadoVehiculo>(`${this.base}/vehiculo/${encodeURIComponent(placa)}`, {
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(timeout(15000));
+  }
+  historial(filtros: EstanciasHistorialFiltros, offset: number, limit: number) {
+    return this.http
+      .get<EstanciasHistorialPagina>(`${this.base}/historial`, {
+        params: {
+          offset,
+          limit,
+          ...(filtros.fecha_desde ? { fecha_desde: filtros.fecha_desde } : {}),
+          ...(filtros.fecha_hasta ? { fecha_hasta: filtros.fecha_hasta } : {}),
+          ...(filtros.placa ? { placa: filtros.placa } : {}),
+        },
         headers: this.getAuthHeaders(),
       })
       .pipe(timeout(15000));

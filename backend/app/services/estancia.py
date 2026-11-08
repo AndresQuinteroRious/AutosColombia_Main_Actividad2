@@ -1,15 +1,16 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from functools import wraps
+from zoneinfo import ZoneInfo
 
-from sqlalchemy import and_, select, text
+from sqlalchemy import and_, func, select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.models import Celda, Estancia, Operador, Vehiculo, required_text
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear, SalidaCrear, EstanciaRespuesta, EstanciaAbiertaRespuesta,
-    EstadoVehiculoRespuesta,
+    EstadoVehiculoRespuesta, EstanciasHistorialPagina,
 )
 from app.schemas.vehiculo import VehiculoRespuesta
 
@@ -18,6 +19,9 @@ class EstanciaError(Exception):
     def __init__(self, status_code: int, detail: str) -> None:
         self.status_code = status_code
         self.detail = detail
+
+
+BOGOTA = ZoneInfo("America/Bogota")
 
 
 def transaccion(operation):
@@ -91,6 +95,65 @@ class ServicioEstancia:
             self.session.scalars(
                 select(Celda).where(~abiertas.exists()).order_by(Celda.id)
             )
+        )
+
+    @transaccion
+    def historial(
+        self,
+        fecha_desde: date | None,
+        fecha_hasta: date | None,
+        placa: str | None,
+        offset: int,
+        limit: int,
+    ) -> EstanciasHistorialPagina:
+        if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+            raise EstanciaError(422, "La fecha desde no puede ser posterior a la fecha hasta.")
+
+        condiciones = []
+        if fecha_desde:
+            desde = datetime.combine(fecha_desde, time.min, tzinfo=BOGOTA)
+            condiciones.append(Estancia.entrada >= desde.astimezone(timezone.utc))
+        if fecha_hasta:
+            hasta_exclusivo = datetime.combine(
+                fecha_hasta + timedelta(days=1), time.min, tzinfo=BOGOTA
+            )
+            condiciones.append(Estancia.entrada < hasta_exclusivo.astimezone(timezone.utc))
+        placa_normalizada = placa.strip().upper() if placa and placa.strip() else None
+        if placa_normalizada:
+            condiciones.append(Vehiculo.placa.contains(placa_normalizada, autoescape=True))
+
+        total = self.session.scalar(
+            select(func.count())
+            .select_from(Estancia)
+            .join(Vehiculo, Vehiculo.id == Estancia.vehiculo_id)
+            .where(*condiciones)
+        )
+        operador_entrada = aliased(Operador)
+        operador_salida = aliased(Operador)
+        rows = self.session.execute(
+            select(
+                Estancia.id,
+                Vehiculo.placa.label("placa"),
+                Celda.codigo.label("celda"),
+                operador_entrada.nombre.label("operador_entrada"),
+                operador_salida.nombre.label("operador_salida"),
+                Estancia.entrada,
+                Estancia.salida,
+            )
+            .join(Vehiculo, Vehiculo.id == Estancia.vehiculo_id)
+            .join(Celda, Celda.id == Estancia.celda_id)
+            .join(operador_entrada, operador_entrada.id == Estancia.operador_entrada_id)
+            .outerjoin(operador_salida, operador_salida.id == Estancia.operador_salida_id)
+            .where(*condiciones)
+            .order_by(Estancia.entrada.desc(), Estancia.id.desc())
+            .offset(offset)
+            .limit(limit)
+        ).mappings().all()
+        return EstanciasHistorialPagina(
+            items=[dict(row) for row in rows],
+            total=total or 0,
+            offset=offset,
+            limit=limit,
         )
 
     @transaccion

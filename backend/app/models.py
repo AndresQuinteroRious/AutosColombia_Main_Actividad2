@@ -235,8 +235,13 @@ class Novedad(Base):
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    vehiculo_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("vehiculo.id", name="fk_novedad_vehiculo", ondelete="SET NULL"), nullable=True
+    )
     descripcion: Mapped[str] = mapped_column(Text, nullable=False)
     fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    vehiculo: Mapped[Vehiculo | None] = relationship()
 
     @validates("descripcion")
     def validate_text(self, key: str, value: str) -> str:
