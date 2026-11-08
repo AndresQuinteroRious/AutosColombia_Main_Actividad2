@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from functools import wraps
 
-from sqlalchemy import and_, select
+from sqlalchemy import and_, select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -62,6 +62,36 @@ class ServicioEstancia:
         if operador is None:
             raise EstanciaError(404, "Operador no encontrado.")
         return operador
+
+    def operador_actual(self, documento: str) -> dict:
+        operadores = self.session.execute(
+            text(
+                """
+                SELECT id, nombre, telefono
+                FROM operador
+                WHERE upper(btrim(documento)) = upper(btrim(:documento))
+                ORDER BY id
+                LIMIT 2
+                """
+            ),
+            {"documento": documento},
+        ).mappings().all()
+        if not operadores:
+            raise EstanciaError(404, "El usuario que inició sesión no tiene un operador asociado.")
+        if len(operadores) > 1:
+            raise EstanciaError(409, "El usuario tiene más de un operador asociado; revisa sus datos.")
+        return dict(operadores[0])
+
+    def celdas_disponibles(self) -> list[Celda]:
+        abiertas = select(Estancia.id).where(
+            Estancia.celda_id == Celda.id,
+            Estancia.salida.is_(None),
+        )
+        return list(
+            self.session.scalars(
+                select(Celda).where(~abiertas.exists()).order_by(Celda.id)
+            )
+        )
 
     @transaccion
     def entrada(self, data: EntradaCrear) -> EstanciaRespuesta:

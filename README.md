@@ -3,20 +3,18 @@
 ## Pantalla Control de acceso
 
 Disponible en **Control de acceso** en la navegación y en
-<http://127.0.0.1:4200/control-acceso>. Esta etapa añade únicamente frontend y
-documentación; las secciones siguientes conservan resultados de etapas anteriores.
+<http://127.0.0.1:4200/control-acceso>.
 
-La entrada solicita placa, celda y operador. La placa se recorta y convierte a
-mayúsculas. Los selectores cargan todas las páginas de los catálogos existentes
-con `limit=100`, avanzando por offset hasta alcanzar total; no se limita la
-selección a la primera página. Si una página falla, se bloquea el registro y se
-ofrece **Actualizar catálogos**, sin presentar una lista parcial como completa.
-El botón también permite recargar referencias creadas en otra pantalla.
+En **Placa de entrada** se selecciona un vehículo registrado. **Celda** solo
+ofrece celdas sin estancia abierta. **Operador de entrada** muestra únicamente
+el operador asociado al documento del usuario autenticado. En la consulta de salida
+se conserva la selección de operador entre todos los operadores.
 
-La API no ofrece consulta de disponibilidad de celdas. La pantalla lo indica:
-**la ocupación se valida al registrar**; ninguna opción se anuncia como disponible.
-Los conflictos de vehículo dentro, celda ocupada y referencias inexistentes
-muestran los mensajes en español devueltos por FastAPI.
+Los catálogos cargan todas las páginas de vehículos y operadores con `limit=100`,
+avanzando por offset hasta alcanzar el total. **Actualizar catálogos** vuelve a
+cargar las opciones. La disponibilidad de celdas se consulta al cargar y se valida
+otra vez en el servidor al registrar la entrada, para manejar selecciones simultáneas.
+Si falla la carga, se bloquea el registro y no se muestran listas parciales.
 
 La sección de consulta y salida distingue **Vehículo no registrado** de
 **Fuera — Vehículo registrado sin estancia abierta**. Al estar dentro muestra
@@ -65,12 +63,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas.' }
 
 ### Recorrido manual desde la pantalla
 
-1. Desde Vehículos, Celdas y Operadores prepara dos vehículos, una celda y un
-   operador de prueba con identificadores nuevos. Ejemplos: placas
-   `PRUEBA-ACCESO-A-01` y `PRUEBA-ACCESO-B-01`, celda `PRUEBA-CELDA-01` de tipo
-   libre y operador `PRUEBA ACCESO 01`, teléfono `001`. Cambia el sufijo si existe.
+1. Desde Vehículos, Celdas y Operadores prepara dos vehículos y una celda
+   disponible con identificadores nuevos. Ejemplos: placas `PRUEBA-ACCESO-A-01`
+   y `PRUEBA-ACCESO-B-01`, celda `PRUEBA-CELDA-01` de tipo libre. El usuario de
+   prueba debe tener el mismo documento que su operador asociado. Cambia el sufijo
+   si existe.
 2. Abre Control de acceso y pulsa **Actualizar catálogos**. En Registrar entrada,
-   escribe ` prueba-acceso-a-01 ` y selecciona tu celda y operador. Espera
+   selecciona la placa y la celda disponible; el operador de entrada se toma de la
+   sesión. Espera
    confirmación con placa normalizada, código de celda y fecha en Bogotá.
 3. Consulta esa placa en la sección inferior: espera **Dentro**, la celda y la
    fecha de entrada. Repite Registrar entrada: espera **El vehículo ya está dentro**.
@@ -115,13 +115,20 @@ las dependencias y el backend. No se modificó el esquema ni se creó un commit.
 
 Se verificó antes de implementar que `0002` está aplicada y que existen la tabla
 estancia, sus cuatro FK RESTRICT, ambos CHECK y los índices únicos parciales.
-Esta etapa no modifica modelos, tablas, migraciones ni Angular.
+Esta actualización no cambia las tablas ni las migraciones. Añade endpoints de
+consulta para celdas disponibles y para el operador vinculado a la sesión.
+El operador actual se resuelve comparando sin distinguir mayúsculas y espacios el
+documento del usuario del token con `operador.documento`; esa columna ya existe en
+la base configurada. Si no hay una coincidencia única, la vista no permite registrar
+la entrada.
 
 | Método y ruta | Solicitud | Respuesta |
 | --- | --- | --- |
 | `POST /estancias/entrada` | placa, celda_id, operador_id | 201, estancia registrada |
 | `POST /estancias/salida` | placa, operador_id | 200, estancia cerrada |
 | `GET /estancias/vehiculo/{placa}` | placa en la ruta | 200, vehículo y estado actual; 404 si no está registrado |
+| `GET /estancias/celdas-disponibles` | token de sesión | 200, celdas sin estancia abierta |
+| `GET /estancias/operador-actual` | token de sesión | 200, operador asociado al usuario autenticado |
 
 Las respuestas de entrada/salida contienen `id`, `vehiculo_id`, `celda_id`,
 `entrada`, `salida`, `operador_entrada_id` y `operador_salida_id`. Las fechas se

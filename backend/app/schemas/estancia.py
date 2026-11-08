@@ -16,6 +16,12 @@ class EntradaCrear(BaseModel):
     operador_id: Identificador
 
 
+class OperadorEntradaRespuesta(BaseModel):
+    id: int
+    nombre: str
+    telefono: str
+
+
 class SalidaCrear(BaseModel):
     model_config = ConfigDict(extra="forbid")
     placa: Placa

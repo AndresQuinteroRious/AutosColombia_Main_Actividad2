@@ -4,8 +4,8 @@ import { EMPTY, Observable, expand, reduce, throwError, timeout } from 'rxjs';
 import { Celda } from '../models/celda';
 import { Operador } from '../models/operador';
 import { EntradaCrear, SalidaCrear, Estancia, EstadoVehiculo } from '../models/estancia';
-import { API_BASE_URL } from './api.service';
-import { CeldasService } from './celdas.service';
+import { Vehiculo } from '../models/vehiculo';
+import { API_BASE_URL, ApiService } from './api.service';
 import { OperadoresService } from './operadores.service';
 
 interface Pagina<T> {
@@ -19,7 +19,7 @@ interface Pagina<T> {
 export class EstanciasService {
   private readonly http = inject(HttpClient);
   private readonly base = `${inject(API_BASE_URL)}/estancias`;
-  private readonly cells = inject(CeldasService);
+  private readonly vehicleApi = inject(ApiService);
   private readonly operators = inject(OperadoresService);
 
   private getAuthHeaders(): HttpHeaders {
@@ -46,8 +46,18 @@ export class EstanciasService {
       })
       .pipe(timeout(15000));
   }
-  celdas(): Observable<Celda[]> {
-    return this.todas((offset) => this.cells.list(offset, 100));
+  celdasDisponibles(): Observable<Celda[]> {
+    return this.http
+      .get<Celda[]>(`${this.base}/celdas-disponibles`, { headers: this.getAuthHeaders() })
+      .pipe(timeout(15000));
+  }
+  operadorActual(): Observable<Operador> {
+    return this.http
+      .get<Operador>(`${this.base}/operador-actual`, { headers: this.getAuthHeaders() })
+      .pipe(timeout(15000));
+  }
+  vehiculos(): Observable<Vehiculo[]> {
+    return this.todas((offset) => this.vehicleApi.list(offset, 100));
   }
   operadores(): Observable<Operador[]> {
     return this.todas((offset) => this.operators.list(offset, 100));
