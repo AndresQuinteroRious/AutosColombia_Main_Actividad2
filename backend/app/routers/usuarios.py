@@ -77,7 +77,8 @@ def update(id: UserId, data: UsuarioActualizar, session: DatabaseSession, curren
 
 
 @router.delete("/{id}", status_code=204)
-def delete(id: UserId, session: DatabaseSession, current_admin: Usuario = Depends(require_admin)) -> Response:
-    del current_admin
+def delete(id: UserId, session: DatabaseSession, current_user: Usuario = Depends(get_current_user)) -> Response:
+    if current_user.rol != "ADMINISTRADOR" and current_user.id != id:
+        raise HTTPException(status_code=403, detail="Solo el administrador puede eliminar usuarios.")
     service.delete_user(session, id)
     return Response(status_code=204)

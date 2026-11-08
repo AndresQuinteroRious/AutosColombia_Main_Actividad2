@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import { NovedadesService } from '../services/novedades.service';
 import { Novedad, NovedadCrear } from '../models/novedad';
 import { ErrorApi } from '../models/vehiculo';
+import { RolBadge } from '../shared/rol-badge/rol-badge';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -12,7 +13,7 @@ type Field = keyof NovedadCrear;
 
 @Component({
   selector: 'app-novedades',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RolBadge],
   templateUrl: './novedades.html',
   styleUrl: './novedades.css',
 })

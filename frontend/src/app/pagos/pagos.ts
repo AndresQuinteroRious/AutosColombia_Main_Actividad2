@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angu
 import { PagosService } from '../services/pagos.service';
 import { Pago, PagoCrear } from '../models/pago';
 import { ErrorApi } from '../models/vehiculo';
+import { RolBadge } from '../shared/rol-badge/rol-badge';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -16,7 +17,7 @@ type Field = keyof PagoCrear;
 
 @Component({
   selector: 'app-pagos',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, RolBadge],
   templateUrl: './pagos.html',
   styleUrl: './pagos.css',
 })

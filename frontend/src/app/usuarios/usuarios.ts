@@ -161,8 +161,15 @@ export class Usuarios {
       error: (error: HttpErrorResponse) => {
         this.saving.set(false);
         this.actionError.set(this.errorMessage(error));
-        if (error.status === 409)
-          this.setFieldError('documento', 'Ya existe un usuario con ese documento.');
+        if (error.status === 409) {
+          const detail = error.error?.detail || '';
+          if (detail.includes('Solo puede existir un administrador')) {
+            this.setFieldError('rol', 'Solo puede existir un administrador en el sistema.');
+            this.actionError.set('No se puede crear otro administrador. El sistema solo permite uno.');
+          } else {
+            this.setFieldError('documento', 'Ya existe un usuario con ese documento.');
+          }
+        }
         const body = error.error as ErrorApi | null;
         if (error.status === 422 && Array.isArray(body?.detail)) {
           for (const issue of body.detail) {
