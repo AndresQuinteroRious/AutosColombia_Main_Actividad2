@@ -94,6 +94,17 @@ La aplicación cuenta con las siguientes rutas:
 - `/gestion/novedades` - Administración de novedades
 - `/gestion/pagos` - Administración de pagos
 
+La página Inicio permite consultar el historial de estancias con filtros por rango
+de fechas de entrada y placa parcial. Los resultados se ordenan del más reciente al
+más antiguo y se paginan en bloques de 10.
+
+También muestra las estancias abiertas con los datos registrados de cada vehículo,
+su celda y el operador de entrada; la consulta es independiente del flujo operativo.
+
+En Inicio los usuarios con sesión pueden registrar novedades vinculadas a una placa.
+El sistema guarda la fecha y hora del momento de registro. El historial de novedades,
+filtrable por fecha y placa, solo se presenta a administradores.
+
 ## Usuarios registrados y acceso
 
 La aplicación cuenta con los siguientes usuarios visibles en el sistema:

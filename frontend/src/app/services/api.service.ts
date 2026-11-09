@@ -1,7 +1,13 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable, InjectionToken } from '@angular/core';
 import { timeout } from 'rxjs';
-import { Vehiculo, VehiculoActualizar, VehiculoCrear, VehiculosPagina } from '../models/vehiculo';
+import {
+  MensualidadRespuesta,
+  Vehiculo,
+  VehiculoActualizar,
+  VehiculoCrear,
+  VehiculosPagina,
+} from '../models/vehiculo';
 
 // Mismo origen: el proxy de desarrollo define el destino real del backend.
 export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL', { factory: () => '' });
@@ -93,5 +99,12 @@ export class ApiService {
     return this.http.delete<void>(`${this.vehicles}/${id}`, {
       headers: this.getAuthHeaders(),
     }).pipe(timeout(15000));
+  }
+  activateMonthlyStatus(id: number) {
+    return this.http
+      .put<MensualidadRespuesta>(`${this.vehicles}/${id}/mensualidad`, {}, {
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(timeout(15000));
   }
 }

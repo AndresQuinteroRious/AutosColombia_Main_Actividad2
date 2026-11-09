@@ -24,3 +24,39 @@ export interface EstadoVehiculo {
   esta_dentro: boolean;
   estancia: (Estancia & { celda: Celda }) | null;
 }
+
+export interface EstanciaHistorialItem {
+  id: number;
+  placa: string;
+  celda: string;
+  operador_entrada: string;
+  operador_salida: string | null;
+  entrada: string;
+  salida: string | null;
+}
+
+export interface EstanciaAbiertaDetalle {
+  id: number;
+  placa: string;
+  marca: string;
+  modelo: number;
+  color: string;
+  tipo: string;
+  celda: string;
+  entrada: string;
+  operador_entrada: string;
+}
+
+export interface EstanciasHistorialPagina {
+  items: EstanciaHistorialItem[];
+  total: number;
+  offset: number;
+  limit: number;
+}
+
+export interface EstanciasHistorialFiltros {
+  fecha_desde?: string;
+  fecha_hasta?: string;
+  placa?: string;
+  estado?: 'ABIERTAS' | 'CERRADAS';
+}

@@ -255,9 +255,14 @@ creada en la migración `68a8a3380d1d`.
 | GET `/novedades/{id}` | 200 o 404 |
 | PATCH `/novedades/{id}` | 200; solo campos enviados, sin id ni valores nulos |
 | DELETE `/novedades/{id}` | 204 sin cuerpo |
+| POST `/novedades/vehiculo` | requiere sesión; registra descripción y vehiculo_id; la fecha y hora se asignan automáticamente al registrar |
+| GET `/novedades/historial` | requiere administrador; filtra por fecha_desde, fecha_hasta y placa |
 
-Al crear se requiere descripcion. La fecha se asigna automáticamente con la
-fecha y hora actual. Los textos no pueden estar vacíos.
+En el CRUD general se requiere descripcion y la fecha se asigna automáticamente.
+El registro desde Inicio requiere una sesión y guarda el vehículo, la descripción
+y la fecha seleccionada; las fechas se interpretan en America/Bogota. El historial
+del inicio solo admite administradores e incluye novedades anteriores sin vehículo,
+identificadas como «Sin vehículo asociado».
 
 PATCH aplica solo los campos enviados, rechaza valores nulos y campos desconocidos.
 Una novedad inexistente devuelve 404.
@@ -267,6 +272,7 @@ Una novedad inexistente devuelve 404.
 | Campo | Tipo | Restricciones |
 | --- | --- | --- |
 | id | BIGINT | PRIMARY KEY, IDENTITY |
+| vehiculo_id | BIGINT | NULL, FK `vehiculo.id`, ON DELETE SET NULL |
 | descripcion | TEXT | NOT NULL, no vacío |
 | fecha | DATETIME (timezone) | NOT NULL, valor por defecto: now() |
 
@@ -311,12 +317,23 @@ transacciones). Reutiliza el modelo `Vehiculo`, `get_session()` y las tablas exi
 | `POST /vehiculos` | 201 y vehículo registrado, incluido su id |
 | `GET /vehiculos?offset=0&limit=20` | 200 con `items`, `total`, `offset` y `limit` |
 | `GET /vehiculos/{id}` | 200 y vehículo, o 404 |
+| `PUT /vehiculos/{id}/mensualidad` | 200 y mensualidad activa, o 404 |
 | `PATCH /vehiculos/{id}` | 200 y vehículo actualizado, o 404 |
 | `DELETE /vehiculos/{id}` | 204 sin cuerpo, o 404 |
 
 La lista se ordena por id ascendente; `offset` empieza en 0 y `limit` admite de
 1 a 100 (20 por defecto). `total` es el número total de vehículos, no solo el de
 la página. Los ids deben ser enteros positivos dentro del rango de BIGINT.
+Cada elemento incluye `estado_mensualidad`, el estado del registro más reciente
+de `mensualidad` asociado mediante `mensualidad.id_vehiculo`. Si no tiene registros,
+el campo es `null`. La tabla `mensualidad` debe existir en la base de datos; no
+forma parte de las migraciones administradas por este proyecto.
+
+Al crear un vehículo, `estado_mensualidad` permite elegir `activo` o `desactivado`;
+el backend crea el vehículo y su fila en `mensualidad` en una sola transacción.
+PATCH acepta el mismo campo y actualiza el registro de mensualidad más reciente.
+`PUT /vehiculos/{id}/mensualidad` activa la mensualidad del vehículo. Inserta un
+registro si todavía no existe, o actualiza el más reciente. La operación es idempotente.
 
 Al crear se requieren placa, color, modelo, marca y tipo. El año debe ser un
 entero JSON entre 1 y 9999; no se aceptan cadenas, booleanos ni decimales. Los

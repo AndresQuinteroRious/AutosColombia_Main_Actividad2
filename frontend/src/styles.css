@@ -14,3 +14,14 @@ a:focus-visible {
   outline: 3px solid #f4c542;
   outline-offset: 6px;
 }
+
+app-home .novelty-form .novelty-submit {
+  background-color: #1d4e89 !important;
+  border-color: #1d4e89 !important;
+  color: #fff !important;
+}
+
+app-home .novelty-form .novelty-submit:hover:not(:disabled) {
+  background-color: #0d2d50 !important;
+  border-color: #0d2d50 !important;
+}

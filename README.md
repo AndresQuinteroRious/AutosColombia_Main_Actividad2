@@ -3,24 +3,24 @@
 ## Pantalla Control de acceso
 
 Disponible en **Control de acceso** en la navegación y en
-<http://127.0.0.1:4200/control-acceso>. Esta etapa añade únicamente frontend y
-documentación; las secciones siguientes conservan resultados de etapas anteriores.
+<http://127.0.0.1:4200/control-acceso>.
 
-La entrada solicita placa, celda y operador. La placa se recorta y convierte a
-mayúsculas. Los selectores cargan todas las páginas de los catálogos existentes
-con `limit=100`, avanzando por offset hasta alcanzar total; no se limita la
-selección a la primera página. Si una página falla, se bloquea el registro y se
-ofrece **Actualizar catálogos**, sin presentar una lista parcial como completa.
-El botón también permite recargar referencias creadas en otra pantalla.
+En **Placa de entrada** se selecciona un vehículo registrado. **Celda** solo
+ofrece celdas sin estancia abierta. **Operador de entrada** muestra únicamente
+el operador asociado al documento del usuario autenticado. La entrada solo se
+permite si la mensualidad más reciente del vehículo está activa; si no, la pantalla
+muestra el motivo y el servidor también rechaza la solicitud. En la consulta de salida
+el operador de salida queda fijado al usuario autenticado.
 
-La API no ofrece consulta de disponibilidad de celdas. La pantalla lo indica:
-**la ocupación se valida al registrar**; ninguna opción se anuncia como disponible.
-Los conflictos de vehículo dentro, celda ocupada y referencias inexistentes
-muestran los mensajes en español devueltos por FastAPI.
+Los catálogos cargan todas las páginas de vehículos y operadores con `limit=100`,
+avanzando por offset hasta alcanzar el total. **Actualizar catálogos** vuelve a
+cargar las opciones. La disponibilidad de celdas se consulta al cargar y se valida
+otra vez en el servidor al registrar la entrada, para manejar selecciones simultáneas.
+Si falla la carga, se bloquea el registro y no se muestran listas parciales.
 
 La sección de consulta y salida distingue **Vehículo no registrado** de
 **Fuera — Vehículo registrado sin estancia abierta**. Al estar dentro muestra
-celda y fecha de entrada, y permite confirmar la salida con un operador. La
+celda y fecha de entrada, y permite confirmar la salida con el operador de la sesión. La
 solicitud de salida contiene solo placa y operador_id; tras el cierre se consulta
 de nuevo el vehículo. Cambiar la placa invalida el resultado anterior y descarta
 respuestas de consultas previas que lleguen tarde. No se permite cerrar basándose
@@ -65,12 +65,14 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas.' }
 
 ### Recorrido manual desde la pantalla
 
-1. Desde Vehículos, Celdas y Operadores prepara dos vehículos, una celda y un
-   operador de prueba con identificadores nuevos. Ejemplos: placas
-   `PRUEBA-ACCESO-A-01` y `PRUEBA-ACCESO-B-01`, celda `PRUEBA-CELDA-01` de tipo
-   libre y operador `PRUEBA ACCESO 01`, teléfono `001`. Cambia el sufijo si existe.
+1. Desde Vehículos, Celdas y Operadores prepara dos vehículos y una celda
+   disponible con identificadores nuevos. Ejemplos: placas `PRUEBA-ACCESO-A-01`
+   y `PRUEBA-ACCESO-B-01`, celda `PRUEBA-CELDA-01` de tipo libre. El usuario de
+   prueba debe tener el mismo documento que su operador asociado. Cambia el sufijo
+   si existe.
 2. Abre Control de acceso y pulsa **Actualizar catálogos**. En Registrar entrada,
-   escribe ` prueba-acceso-a-01 ` y selecciona tu celda y operador. Espera
+   selecciona la placa y la celda disponible; el operador de entrada se toma de la
+   sesión. Espera
    confirmación con placa normalizada, código de celda y fecha en Bogotá.
 3. Consulta esa placa en la sección inferior: espera **Dentro**, la celda y la
    fecha de entrada. Repite Registrar entrada: espera **El vehículo ya está dentro**.
@@ -115,13 +117,22 @@ las dependencias y el backend. No se modificó el esquema ni se creó un commit.
 
 Se verificó antes de implementar que `0002` está aplicada y que existen la tabla
 estancia, sus cuatro FK RESTRICT, ambos CHECK y los índices únicos parciales.
-Esta etapa no modifica modelos, tablas, migraciones ni Angular.
+Esta actualización no cambia las tablas ni las migraciones. Añade endpoints de
+consulta para celdas disponibles y para el operador vinculado a la sesión.
+El operador actual se resuelve comparando sin distinguir mayúsculas y espacios el
+documento del usuario del token con `operador.documento`; esa columna ya existe en
+la base configurada. Si no hay una coincidencia única, la vista no permite registrar
+la entrada.
 
 | Método y ruta | Solicitud | Respuesta |
 | --- | --- | --- |
 | `POST /estancias/entrada` | placa, celda_id, operador_id | 201, estancia registrada |
 | `POST /estancias/salida` | placa, operador_id | 200, estancia cerrada |
 | `GET /estancias/vehiculo/{placa}` | placa en la ruta | 200, vehículo y estado actual; 404 si no está registrado |
+| `GET /estancias/historial` | fecha_desde, fecha_hasta, placa, estado, offset, limit opcionales | 200, página filtrada por fecha de entrada, placa y estado (`ABIERTAS` o `CERRADAS`) |
+| `GET /estancias/abiertas` | token de sesión | 200, estancias abiertas con datos del vehículo, celda y operador; acepta fecha_desde, fecha_hasta y placa |
+| `GET /estancias/celdas-disponibles` | token de sesión | 200, celdas sin estancia abierta |
+| `GET /estancias/operador-actual` | token de sesión | 200, operador asociado al usuario autenticado |
 
 Las respuestas de entrada/salida contienen `id`, `vehiculo_id`, `celda_id`,
 `entrada`, `salida`, `operador_entrada_id` y `operador_salida_id`. Las fechas se
@@ -874,6 +885,19 @@ un error HTTP o de red, o una espera superior a 5 segundos muestran el error.
 La comprobación se realiza una vez al cargar: recarga la página para repetirla.
 Angular actualiza la página al guardar cambios.
 
+En Inicio, **Historial de estancias** permite filtrar por rango de fechas de entrada
+y por placa parcial. Las fechas se interpretan en America/Bogota y los resultados
+se presentan en páginas de 10 registros.
+
+Inicio también consulta las estancias abiertas y muestra la placa, marca, modelo,
+color, tipo, celda, hora de entrada y operador. Es una consulta de solo lectura y no
+altera el flujo de entrada o salida de Control de acceso.
+
+Los usuarios con sesión también pueden registrar novedades de un vehículo por placa y
+descripción. La fecha y hora se asignan automáticamente al registrar. El historial de
+novedades de Inicio, con filtros por fecha y placa, está disponible solo para
+administradores.
+
 El proxy de desarrollo de `frontend/proxy.conf.json`, activado en `angular.json`,
 redirige `/health`, `/vehiculos`, `/vehiculos/**`, `/celdas`, `/celdas/**`,
 `/operadores` y `/operadores/**`
@@ -891,6 +915,11 @@ La bienvenida permanece en **Inicio**. La ruta de pantalla `/gestion/vehiculos`
 es distinta de la ruta API `/vehiculos` para evitar conflictos con el proxy.
 
 - El listado usa páginas de 10 vehículos, ordenadas por id, con Anterior y Siguiente.
+- La tabla **Vehículos registrados** muestra **Estado mensualidad** en lugar de
+  **Celda**. Si no hay un registro activo, ofrece **Activar mensualidad**, que
+  registra o reactiva el estado en la tabla `mensualidad` por id de vehículo.
+- El formulario de vehículo permite elegir **Con mensualidad** o **Sin mensualidad**
+  al registrar y editar; el backend guarda el estado junto al id del vehículo.
 - **Nuevo vehículo** abre un formulario reactivo con placa, marca, año, color y tipo.
   Todos son obligatorios; el año es entero entre 1 y 9999. La placa se recorta y
   convierte a mayúsculas. Los tipos son MOTO, AUTOMOVIL y CAMIONETA.

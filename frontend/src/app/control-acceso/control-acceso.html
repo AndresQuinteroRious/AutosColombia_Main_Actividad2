@@ -12,20 +12,31 @@
       Actualizar catálogos
     </button>
     @if (catalogLoading()) {
-      <p role="status">Cargando todas las páginas de celdas y operadores…</p>
+      <p role="status">Cargando vehículos, celdas disponibles y operador de sesión…</p>
     }
     @if (catalogError()) {
       <p role="alert" class="notice error">{{ catalogError() }}</p>
     }
+    @if (operatorError()) {
+      <p role="alert" class="notice error">{{ operatorError() }}</p>
+    }
     @if (!catalogLoading() && !catalogError()) {
-      <p>{{ celdas().length }} celdas · {{ operadores().length }} operadores.</p>
-      @if (!celdas().length || !operadores().length) {
-        <p>Registra celdas y operadores desde su gestión para poder seleccionarlos.</p>
+      <p>
+        {{ vehiculos().length }} vehículos · {{ celdas().length }} celdas disponibles.
+      </p>
+      @if (!vehiculos().length) {
+        <p>No hay vehículos registrados para seleccionar.</p>
+      }
+      @if (!celdas().length) {
+        <p>No hay celdas disponibles; revisa las estancias abiertas.</p>
+      }
+      @if (!operadorEntrada()) {
+        <p>No se pudo asociar un operador de salida al usuario de la sesión.</p>
       }
     }
     <p class="hint">
-      Las celdas listadas no indican disponibilidad. La ocupación se validará al registrar la
-      entrada.
+      La lista de celdas excluye las que tienen una estancia abierta; la disponibilidad se vuelve
+      a validar al registrar la entrada.
     </p>
   </section>
   <section class="panel" aria-labelledby="entry-title">
@@ -36,22 +47,29 @@
         <div class="form-grid">
           <div class="field">
             <label for="entry-plate">Placa de entrada</label
-            ><input
-              id="entry-plate"
-              formControlName="placa"
-              type="text"
-              aria-describedby="entry-plate-error"
-            />
+            ><select id="entry-plate" formControlName="placa" aria-describedby="entry-plate-error">
+              <option value="">Selecciona un vehículo</option>
+              @for (vehicle of vehiculos(); track vehicle.id) {
+                <option [value]="vehicle.placa">
+                  {{ vehicle.placa }} · {{ vehicle.marca }} {{ vehicle.modelo }}
+                </option>
+              }
+            </select>
             <span id="entry-plate-error" class="field-error">
               @if (entrada.controls.placa.touched && entrada.controls.placa.invalid) {
                 La placa es obligatoria y no puede estar vacía.
               }
             </span>
+            @if (mensualidadInactiva()) {
+              <span class="field-error monthly-error" role="alert">
+                La mensualidad de este vehículo no está activa; no se puede registrar la entrada.
+              </span>
+            }
           </div>
           <div class="field">
             <label for="entry-cell">Celda</label
             ><select id="entry-cell" formControlName="celda_id">
-              <option [ngValue]="null">Selecciona una celda</option>
+              <option [ngValue]="null">Selecciona una celda disponible</option>
               @for (c of celdas(); track c.id) {
                 <option [ngValue]="c.id">{{ c.codigo }} · {{ c.tipo }}</option>
               }
@@ -64,20 +82,23 @@
           </div>
           <div class="field">
             <label for="entry-operator">Operador de entrada</label
-            ><select id="entry-operator" formControlName="operador_id">
-              <option [ngValue]="null">Selecciona un operador</option>
-              @for (o of operadores(); track o.id) {
-                <option [ngValue]="o.id">{{ o.nombre }} · #{{ o.id }}</option>
+            ><select id="entry-operator" [value]="operadorEntrada()?.id ?? ''" disabled>
+              @if (operadorEntrada(); as operator) {
+                <option [value]="operator.id">{{ operator.nombre }} · #{{ operator.id }}</option>
+              } @else {
+                <option value="">Operador de sesión no disponible</option>
               }
             </select>
-            <span class="field-error">
-              @if (entrada.controls.operador_id.touched && entrada.controls.operador_id.invalid) {
-                Selecciona un operador.
-              }
-            </span>
+            <span class="field-error"></span>
           </div>
         </div>
-        <button class="primary" type="submit">Registrar entrada</button>
+        <button
+          class="primary"
+          type="submit"
+          [disabled]="busy() || catalogLoading() || !!catalogError() || !operadorEntrada() || mensualidadInactiva()"
+        >
+          Registrar entrada
+        </button>
       </fieldset>
     </form>
     @if (errorEntrada()) {
@@ -104,17 +125,14 @@
           </div>
           <div class="field">
             <label for="exit-operator">Operador de salida</label
-            ><select id="exit-operator" formControlName="operador_id">
-              <option [ngValue]="null">Selecciona un operador</option>
-              @for (o of operadores(); track o.id) {
-                <option [ngValue]="o.id">{{ o.nombre }} · #{{ o.id }}</option>
+            ><select id="exit-operator" [value]="operadorEntrada()?.id ?? ''" disabled>
+              @if (operadorEntrada(); as operator) {
+                <option [value]="operator.id">{{ operator.nombre }} · #{{ operator.id }}</option>
+              } @else {
+                <option value="">Operador de sesión no disponible</option>
               }
             </select>
-            <span class="field-error">
-              @if (consulta.controls.operador_id.touched && consulta.controls.operador_id.invalid) {
-                Selecciona un operador para confirmar la salida.
-              }
-            </span>
+            <span class="field-error"></span>
           </div>
         </div>
         <button type="submit" [disabled]="busy()">Consultar vehículo</button>
@@ -132,12 +150,12 @@
         <p>{{ state.vehiculo.marca }} · {{ state.vehiculo.color }}</p>
         @if (state.estancia; as stay) {
           <p>Celda {{ stay.celda.codigo }} · Entrada {{ fecha(stay.entrada) }}</p>
-          <p>Confirma la salida de este vehículo con el operador seleccionado.</p>
+          <p>Confirma la salida de este vehículo con el operador de tu sesión.</p>
           <button
             type="button"
             class="primary"
             (click)="registrarSalida()"
-            [disabled]="busy() || catalogLoading() || !!catalogError()"
+            [disabled]="busy() || catalogLoading() || !!catalogError() || !operadorEntrada()"
           >
             Confirmar salida
           </button>

@@ -16,6 +16,51 @@ class EntradaCrear(BaseModel):
     operador_id: Identificador
 
 
+class OperadorEntradaRespuesta(BaseModel):
+    id: int
+    nombre: str
+    telefono: str
+
+
+class EstanciaHistorialItem(BaseModel):
+    id: int
+    placa: str
+    celda: str
+    operador_entrada: str
+    operador_salida: str | None
+    entrada: datetime
+    salida: datetime | None
+
+    @field_validator("entrada", "salida")
+    @classmethod
+    def fechas_utc(cls, value: datetime | None) -> datetime | None:
+        return value.astimezone(timezone.utc) if value is not None else None
+
+
+class EstanciasHistorialPagina(BaseModel):
+    items: list[EstanciaHistorialItem]
+    total: int
+    offset: int
+    limit: int
+
+
+class EstanciaAbiertaDetalle(BaseModel):
+    id: int
+    placa: str
+    marca: str
+    modelo: int
+    color: str
+    tipo: str
+    celda: str
+    entrada: datetime
+    operador_entrada: str
+
+    @field_validator("entrada")
+    @classmethod
+    def fecha_utc(cls, value: datetime) -> datetime:
+        return value.astimezone(timezone.utc)
+
+
 class SalidaCrear(BaseModel):
     model_config = ConfigDict(extra="forbid")
     placa: Placa

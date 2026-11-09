@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, Path, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_session
-from app.schemas.vehiculo import VehiculoActualizar, VehiculoCrear, VehiculoRespuesta, VehiculosPagina
+from app.schemas.vehiculo import (
+    MensualidadRespuesta,
+    VehiculoActualizar,
+    VehiculoCrear,
+    VehiculoRespuesta,
+    VehiculosPagina,
+)
 from app.services import vehiculo as service
 
 router = APIRouter(prefix="/vehiculos", tags=["Vehículos"])
@@ -24,6 +30,11 @@ def list_all(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ):
     return service.list_vehicles(session, offset, limit)
+
+
+@router.put("/{id}/mensualidad", response_model=MensualidadRespuesta)
+def activate_monthly_status(id: VehicleId, session: DatabaseSession):
+    return service.activate_monthly_status(session, id)
 
 
 @router.get("/{id}", response_model=VehiculoRespuesta)

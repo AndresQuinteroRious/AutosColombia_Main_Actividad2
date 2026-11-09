@@ -1,7 +1,7 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field
 
 from app.models import required_text
 
@@ -31,6 +31,24 @@ class NovedadRespuesta(NovedadCrear):
     model_config = ConfigDict(from_attributes=True, extra="forbid")
     id: int
     fecha: datetime
+
+
+class NovedadVehiculoCrear(NovedadCrear):
+    vehiculo_id: Annotated[int, Field(strict=True, ge=1, le=9223372036854775807)]
+
+
+class NovedadHistorialItem(BaseModel):
+    id: int
+    placa: str | None
+    descripcion: str
+    fecha: datetime
+
+
+class NovedadesHistorialPagina(BaseModel):
+    items: list[NovedadHistorialItem]
+    total: int
+    offset: int
+    limit: int
 
 
 class NovedadesPagina(BaseModel):

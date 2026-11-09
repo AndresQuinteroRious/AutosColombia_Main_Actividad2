@@ -177,6 +177,10 @@ select {
   color: var(--danger);
   min-height: 16px;
 }
+.monthly-error {
+  color: #d32f2f !important;
+  font-weight: 600;
+}
 .actions {
   display: flex;
   gap: 10px;
