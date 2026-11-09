@@ -35,7 +35,6 @@ class NovedadRespuesta(NovedadCrear):
 
 class NovedadVehiculoCrear(NovedadCrear):
     vehiculo_id: Annotated[int, Field(strict=True, ge=1, le=9223372036854775807)]
-    fecha: date
 
 
 class NovedadHistorialItem(BaseModel):

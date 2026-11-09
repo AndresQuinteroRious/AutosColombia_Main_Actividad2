@@ -35,6 +35,18 @@ export interface EstanciaHistorialItem {
   salida: string | null;
 }
 
+export interface EstanciaAbiertaDetalle {
+  id: number;
+  placa: string;
+  marca: string;
+  modelo: number;
+  color: string;
+  tipo: string;
+  celda: string;
+  entrada: string;
+  operador_entrada: string;
+}
+
 export interface EstanciasHistorialPagina {
   items: EstanciaHistorialItem[];
   total: number;
@@ -46,4 +58,5 @@ export interface EstanciasHistorialFiltros {
   fecha_desde?: string;
   fecha_hasta?: string;
   placa?: string;
+  estado?: 'ABIERTAS' | 'CERRADAS';
 }

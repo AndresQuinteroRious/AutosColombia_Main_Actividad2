@@ -5,6 +5,7 @@ import { Celda } from '../models/celda';
 import { Operador } from '../models/operador';
 import {
   EntradaCrear,
+  EstanciaAbiertaDetalle,
   Estancia,
   EstanciasHistorialFiltros,
   EstadoVehiculo,
@@ -53,6 +54,18 @@ export class EstanciasService {
       })
       .pipe(timeout(15000));
   }
+  abiertas(filtros: EstanciasHistorialFiltros = {}): Observable<EstanciaAbiertaDetalle[]> {
+    return this.http
+      .get<EstanciaAbiertaDetalle[]>(`${this.base}/abiertas`, {
+        params: {
+          ...(filtros.fecha_desde ? { fecha_desde: filtros.fecha_desde } : {}),
+          ...(filtros.fecha_hasta ? { fecha_hasta: filtros.fecha_hasta } : {}),
+          ...(filtros.placa ? { placa: filtros.placa } : {}),
+        },
+        headers: this.getAuthHeaders(),
+      })
+      .pipe(timeout(15000));
+  }
   historial(filtros: EstanciasHistorialFiltros, offset: number, limit: number) {
     return this.http
       .get<EstanciasHistorialPagina>(`${this.base}/historial`, {
@@ -62,6 +75,7 @@ export class EstanciasService {
           ...(filtros.fecha_desde ? { fecha_desde: filtros.fecha_desde } : {}),
           ...(filtros.fecha_hasta ? { fecha_hasta: filtros.fecha_hasta } : {}),
           ...(filtros.placa ? { placa: filtros.placa } : {}),
+          ...(filtros.estado ? { estado: filtros.estado } : {}),
         },
         headers: this.getAuthHeaders(),
       })

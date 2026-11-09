@@ -255,7 +255,7 @@ creada en la migración `68a8a3380d1d`.
 | GET `/novedades/{id}` | 200 o 404 |
 | PATCH `/novedades/{id}` | 200; solo campos enviados, sin id ni valores nulos |
 | DELETE `/novedades/{id}` | 204 sin cuerpo |
-| POST `/novedades/vehiculo` | requiere sesión; registra descripción, vehiculo_id y fecha local indicada |
+| POST `/novedades/vehiculo` | requiere sesión; registra descripción y vehiculo_id; la fecha y hora se asignan automáticamente al registrar |
 | GET `/novedades/historial` | requiere administrador; filtra por fecha_desde, fecha_hasta y placa |
 
 En el CRUD general se requiere descripcion y la fecha se asigna automáticamente.

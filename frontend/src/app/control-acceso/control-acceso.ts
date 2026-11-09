@@ -4,8 +4,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { catchError, forkJoin, of } from 'rxjs';
 import { Celda } from '../models/celda';
-import { Operador } from '../models/operador';
 import { EstadoVehiculo } from '../models/estancia';
+import { Operador } from '../models/operador';
 import { Vehiculo } from '../models/vehiculo';
 import { EstanciasService } from '../services/estancias.service';
 import { RolBadge } from '../shared/rol-badge/rol-badge';
@@ -30,13 +30,13 @@ export class ControlAcceso {
     celda_id: this.fb.control<number | null>(null, Validators.required),
     operador_id: this.fb.control<number | null>(null, Validators.required),
   });
+  readonly mensualidadInactiva = signal(false);
   readonly consulta = this.fb.group({
     placa: this.fb.nonNullable.control('', nonBlank),
     operador_id: this.fb.control<number | null>(null, Validators.required),
   });
   readonly celdas = signal<Celda[]>([]);
   readonly vehiculos = signal<Vehiculo[]>([]);
-  readonly operadores = signal<Operador[]>([]);
   readonly operadorEntrada = signal<Operador | null>(null);
   readonly catalogLoading = signal(false);
   readonly catalogError = signal('');
@@ -51,6 +51,9 @@ export class ControlAcceso {
   readonly exitoSalida = signal('');
 
   constructor() {
+    this.entrada.controls.placa.valueChanges
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe((value) => this.validarMensualidadEntrada(value));
     this.consulta.controls.placa.valueChanges
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe(() => {
@@ -69,11 +72,9 @@ export class ControlAcceso {
     this.operatorError.set('');
     this.entrada.controls.celda_id.reset();
     this.entrada.controls.operador_id.reset();
-    this.consulta.controls.operador_id.reset();
     forkJoin({
       celdas: this.api.celdasDisponibles(),
       vehiculos: this.api.vehiculos(),
-      operadores: this.api.operadores(),
       operadorEntrada: this.api.operadorActual().pipe(
         catchError((error: HttpErrorResponse) => {
           this.operatorError.set(error.status === 404
@@ -89,16 +90,16 @@ export class ControlAcceso {
         next: (data) => {
           this.celdas.set(data.celdas);
           this.vehiculos.set(data.vehiculos);
-          this.operadores.set(data.operadores);
+          this.validarMensualidadEntrada(this.entrada.controls.placa.value);
           this.operadorEntrada.set(data.operadorEntrada);
           this.entrada.controls.operador_id.setValue(data.operadorEntrada?.id ?? null);
+          this.consulta.controls.operador_id.setValue(data.operadorEntrada?.id ?? null);
           this.catalogLoading.set(false);
         },
         error: (error: HttpErrorResponse) => {
           this.catalogLoading.set(false);
           this.celdas.set([]);
           this.vehiculos.set([]);
-          this.operadores.set([]);
           this.operadorEntrada.set(null);
           this.catalogError.set('No se pudieron cargar todas las opciones. Reintenta actualizar catálogos.');
         },
@@ -108,6 +109,10 @@ export class ControlAcceso {
   registrarEntrada(): void {
     if (this.busy() || this.catalogLoading() || this.catalogError()) return;
     this.entrada.markAllAsTouched();
+    if (this.mensualidadInactiva()) {
+      this.errorEntrada.set('La mensualidad de este vehículo no está activa; no se puede registrar la entrada.');
+      return;
+    }
     const operador = this.operadorEntrada();
     if (!operador) {
       this.errorEntrada.set(this.operatorError());
@@ -146,6 +151,16 @@ export class ControlAcceso {
       });
   }
 
+  private validarMensualidadEntrada(value: string): void {
+    if (!value) {
+      this.mensualidadInactiva.set(false);
+      return;
+    }
+    const vehicle = this.vehiculos().find((item) => item.placa === placa(value));
+    this.mensualidadInactiva.set(vehicle?.estado_mensualidad !== 'activo');
+    if (vehicle?.estado_mensualidad === 'activo') this.errorEntrada.set('');
+  }
+
   buscar(): void {
     if (this.busy()) return;
     this.consulta.controls.placa.markAsTouched();
@@ -179,6 +194,11 @@ export class ControlAcceso {
     this.consulta.markAllAsTouched();
     const state = this.estado();
     const value = placa(this.consulta.controls.placa.value);
+    const operator = this.operadorEntrada();
+    if (!operator) {
+      this.errorConsulta.set(this.operatorError() || 'No se pudo identificar al operador de la sesión.');
+      return;
+    }
     if (
       this.consulta.invalid ||
       !state?.estancia ||
@@ -191,7 +211,7 @@ export class ControlAcceso {
     this.errorConsulta.set('');
     this.exitoSalida.set('');
     this.api
-      .salida({ placa: value, operador_id: this.consulta.controls.operador_id.value! })
+      .salida({ placa: value, operador_id: operator.id })
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe({
         next: (result) => {

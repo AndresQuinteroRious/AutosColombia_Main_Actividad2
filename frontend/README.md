@@ -98,9 +98,12 @@ La página Inicio permite consultar el historial de estancias con filtros por ra
 de fechas de entrada y placa parcial. Los resultados se ordenan del más reciente al
 más antiguo y se paginan en bloques de 10.
 
-En Inicio los usuarios con sesión pueden registrar novedades vinculadas a una placa
-y fecha. El historial de novedades, filtrable por fecha y placa, solo se presenta a
-administradores.
+También muestra las estancias abiertas con los datos registrados de cada vehículo,
+su celda y el operador de entrada; la consulta es independiente del flujo operativo.
+
+En Inicio los usuarios con sesión pueden registrar novedades vinculadas a una placa.
+El sistema guarda la fecha y hora del momento de registro. El historial de novedades,
+filtrable por fecha y placa, solo se presenta a administradores.
 
 ## Usuarios registrados y acceso
 

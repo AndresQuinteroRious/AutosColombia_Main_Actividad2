@@ -2,7 +2,6 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
-import { timeout } from 'rxjs';
 import {
   EstanciasHistorialFiltros,
   EstanciaHistorialItem,
@@ -36,25 +35,13 @@ export class Home {
   private historialRequest = 0;
   private historialNovedadesRequest = 0;
 
-  protected readonly connectionState = signal<'checking' | 'available' | 'unavailable'>(
-    'checking',
-  );
-  protected readonly connectionMessage = computed(() => {
-    switch (this.connectionState()) {
-      case 'available':
-        return 'Servicio disponible';
-      case 'unavailable':
-        return 'No se pudo conectar con el servicio';
-      default:
-        return 'Comprobando conexión…';
-    }
-  });
   protected readonly historialForm = this.fb.nonNullable.group({
     fecha_desde: '',
     fecha_hasta: '',
     placa: '',
   });
-  protected readonly filtros = signal<EstanciasHistorialFiltros>({});
+  protected readonly filtros = signal<EstanciasHistorialFiltros>({ estado: 'ABIERTAS' });
+  protected readonly mostrandoAbiertasPorDefecto = signal(true);
   protected readonly registros = signal<EstanciaHistorialItem[]>([]);
   protected readonly total = signal(0);
   protected readonly offset = signal(0);
@@ -72,7 +59,6 @@ export class Home {
   protected readonly errorVehiculosNovedad = signal('');
   protected readonly novedadForm = this.fb.nonNullable.group({
     placa: this.fb.nonNullable.control('', nonBlank),
-    fecha: this.fb.nonNullable.control('', nonBlank),
     descripcion: this.fb.nonNullable.control('', nonBlank),
   });
   protected readonly savingNovedad = signal(false);
@@ -100,14 +86,8 @@ export class Home {
   );
 
   constructor() {
-    this.api
-      .health()
-      .pipe(timeout(5000), takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (response) =>
-          this.connectionState.set(response?.status === 'ok' ? 'available' : 'unavailable'),
-        error: () => this.connectionState.set('unavailable'),
-      });
+    this.consultado.set(true);
+    this.cargarHistorial(0);
 
     if (this.isAuthenticated) {
       this.loadingVehiculosNovedad.set(true);
@@ -141,7 +121,6 @@ export class Home {
     }
     const data: NovedadVehiculoCrear = {
       vehiculo_id: vehicle.id,
-      fecha: form.fecha,
       descripcion: form.descripcion.trim(),
     };
     this.savingNovedad.set(true);
@@ -149,10 +128,12 @@ export class Home {
       .createForVehicle(data)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (record) => {
           this.savingNovedad.set(false);
           this.novedadForm.reset();
-          this.successNovedad.set('La novedad quedó registrada.');
+          this.successNovedad.set(
+            `Novedad #${record.id} registrada para ${record.placa ?? form.placa} el ${this.fecha(record.fecha)}.`,
+          );
           if (this.isAdmin) {
             this.historialNovedadForm.reset();
             this.buscarNovedades();
@@ -244,6 +225,7 @@ export class Home {
       fecha_hasta: value.fecha_hasta || undefined,
       placa: value.placa.trim().toUpperCase() || undefined,
     });
+    this.mostrandoAbiertasPorDefecto.set(false);
     this.consultado.set(true);
     this.registros.set([]);
     this.total.set(0);
@@ -254,7 +236,8 @@ export class Home {
   limpiarFiltros(): void {
     this.historialRequest++;
     this.historialForm.reset();
-    this.filtros.set({});
+    this.filtros.set({ estado: 'ABIERTAS' });
+    this.mostrandoAbiertasPorDefecto.set(true);
     this.registros.set([]);
     this.total.set(0);
     this.offset.set(0);
@@ -262,6 +245,8 @@ export class Home {
     this.consultado.set(false);
     this.errorHistorial.set('');
     this.errorFiltros.set('');
+    this.consultado.set(true);
+    this.cargarHistorial(0);
   }
 
   cargarHistorial(offset = this.offset()): void {

@@ -7,8 +7,10 @@ Disponible en **Control de acceso** en la navegación y en
 
 En **Placa de entrada** se selecciona un vehículo registrado. **Celda** solo
 ofrece celdas sin estancia abierta. **Operador de entrada** muestra únicamente
-el operador asociado al documento del usuario autenticado. En la consulta de salida
-se conserva la selección de operador entre todos los operadores.
+el operador asociado al documento del usuario autenticado. La entrada solo se
+permite si la mensualidad más reciente del vehículo está activa; si no, la pantalla
+muestra el motivo y el servidor también rechaza la solicitud. En la consulta de salida
+el operador de salida queda fijado al usuario autenticado.
 
 Los catálogos cargan todas las páginas de vehículos y operadores con `limit=100`,
 avanzando por offset hasta alcanzar el total. **Actualizar catálogos** vuelve a
@@ -18,7 +20,7 @@ Si falla la carga, se bloquea el registro y no se muestran listas parciales.
 
 La sección de consulta y salida distingue **Vehículo no registrado** de
 **Fuera — Vehículo registrado sin estancia abierta**. Al estar dentro muestra
-celda y fecha de entrada, y permite confirmar la salida con un operador. La
+celda y fecha de entrada, y permite confirmar la salida con el operador de la sesión. La
 solicitud de salida contiene solo placa y operador_id; tras el cierre se consulta
 de nuevo el vehículo. Cambiar la placa invalida el resultado anterior y descarta
 respuestas de consultas previas que lleguen tarde. No se permite cerrar basándose
@@ -127,7 +129,8 @@ la entrada.
 | `POST /estancias/entrada` | placa, celda_id, operador_id | 201, estancia registrada |
 | `POST /estancias/salida` | placa, operador_id | 200, estancia cerrada |
 | `GET /estancias/vehiculo/{placa}` | placa en la ruta | 200, vehículo y estado actual; 404 si no está registrado |
-| `GET /estancias/historial` | fecha_desde, fecha_hasta, placa, offset, limit opcionales | 200, página filtrada por fecha de entrada y placa |
+| `GET /estancias/historial` | fecha_desde, fecha_hasta, placa, estado, offset, limit opcionales | 200, página filtrada por fecha de entrada, placa y estado (`ABIERTAS` o `CERRADAS`) |
+| `GET /estancias/abiertas` | token de sesión | 200, estancias abiertas con datos del vehículo, celda y operador; acepta fecha_desde, fecha_hasta y placa |
 | `GET /estancias/celdas-disponibles` | token de sesión | 200, celdas sin estancia abierta |
 | `GET /estancias/operador-actual` | token de sesión | 200, operador asociado al usuario autenticado |
 
@@ -886,9 +889,14 @@ En Inicio, **Historial de estancias** permite filtrar por rango de fechas de ent
 y por placa parcial. Las fechas se interpretan en America/Bogota y los resultados
 se presentan en páginas de 10 registros.
 
-Los usuarios con sesión también pueden registrar novedades de un vehículo por placa,
-descripción y fecha. El historial de novedades de Inicio, con filtros por fecha y
-placa, está disponible solo para administradores.
+Inicio también consulta las estancias abiertas y muestra la placa, marca, modelo,
+color, tipo, celda, hora de entrada y operador. Es una consulta de solo lectura y no
+altera el flujo de entrada o salida de Control de acceso.
+
+Los usuarios con sesión también pueden registrar novedades de un vehículo por placa y
+descripción. La fecha y hora se asignan automáticamente al registrar. El historial de
+novedades de Inicio, con filtros por fecha y placa, está disponible solo para
+administradores.
 
 El proxy de desarrollo de `frontend/proxy.conf.json`, activado en `angular.json`,
 redirige `/health`, `/vehiculos`, `/vehiculos/**`, `/celdas`, `/celdas/**`,

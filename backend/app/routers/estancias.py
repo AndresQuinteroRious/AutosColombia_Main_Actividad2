@@ -1,4 +1,4 @@
-from typing import Annotated
+from typing import Annotated, Literal
 from datetime import date
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query
@@ -9,6 +9,7 @@ from app.models import Usuario
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear,
+    EstanciaAbiertaDetalle,
     EstanciaRespuesta,
     EstanciasHistorialPagina,
     EstadoVehiculoRespuesta,
@@ -55,6 +56,18 @@ def celdas_disponibles(
     return ServicioEstancia(session).celdas_disponibles()
 
 
+@router.get("/abiertas", response_model=list[EstanciaAbiertaDetalle])
+def abiertas(
+    session: DatabaseSession,
+    fecha_desde: Annotated[date | None, Query()] = None,
+    fecha_hasta: Annotated[date | None, Query()] = None,
+    placa: Annotated[str | None, Query(max_length=20)] = None,
+    user: Usuario = Depends(usuario_actual),
+) -> list[EstanciaAbiertaDetalle]:
+    del user
+    return ServicioEstancia(session).abiertas(fecha_desde, fecha_hasta, placa)
+
+
 @router.get("/historial", response_model=EstanciasHistorialPagina)
 def historial(
     session: DatabaseSession,
@@ -63,8 +76,9 @@ def historial(
     placa: Annotated[str | None, Query(max_length=20)] = None,
     offset: Annotated[int, Query(ge=0, le=9223372036854775807)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 10,
+    estado: Annotated[Literal["ABIERTAS", "CERRADAS"] | None, Query()] = None,
 ) -> EstanciasHistorialPagina:
-    return ServicioEstancia(session).historial(fecha_desde, fecha_hasta, placa, offset, limit)
+    return ServicioEstancia(session).historial(fecha_desde, fecha_hasta, placa, offset, limit, estado)
 
 
 @router.post("/salida", response_model=EstanciaRespuesta)

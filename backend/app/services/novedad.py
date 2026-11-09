@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta
 from functools import wraps
 from zoneinfo import ZoneInfo
 
@@ -40,7 +40,10 @@ def database_operation(operation):
             raise NovedadError(409, "La operación entra en conflicto con los datos existentes.") from None
         except SQLAlchemyError:
             session.rollback()
-            raise NovedadError(503, "No se pudo completar la operación con la base de datos.") from None
+            raise NovedadError(
+                503,
+                "No se pudo completar la operación de novedades. Verifica que PostgreSQL esté disponible y que la migración novedad_vehiculo esté aplicada.",
+            ) from None
     return wrapped
 
 
@@ -65,11 +68,9 @@ def create_vehicle_novedad(session: Session, data: NovedadVehiculoCrear) -> Nove
     vehiculo = session.get(Vehiculo, data.vehiculo_id)
     if vehiculo is None:
         raise NovedadError(404, "Vehículo no encontrado.")
-    fecha = datetime.combine(data.fecha, time.min, tzinfo=BOGOTA).astimezone(timezone.utc)
     novedad = Novedad(
         vehiculo_id=vehiculo.id,
         descripcion=data.descripcion,
-        fecha=fecha,
     )
     session.add(novedad)
     session.commit()

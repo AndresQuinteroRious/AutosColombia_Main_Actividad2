@@ -10,7 +10,7 @@ from app.models import Celda, Estancia, Operador, Vehiculo, required_text
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear, SalidaCrear, EstanciaRespuesta, EstanciaAbiertaRespuesta,
-    EstadoVehiculoRespuesta, EstanciasHistorialPagina,
+    EstadoVehiculoRespuesta, EstanciasHistorialPagina, EstanciaAbiertaDetalle,
 )
 from app.schemas.vehiculo import VehiculoRespuesta
 
@@ -98,6 +98,49 @@ class ServicioEstancia:
         )
 
     @transaccion
+    def abiertas(
+        self,
+        fecha_desde: date | None = None,
+        fecha_hasta: date | None = None,
+        placa: str | None = None,
+    ) -> list[EstanciaAbiertaDetalle]:
+        if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
+            raise EstanciaError(422, "La fecha desde no puede ser posterior a la fecha hasta.")
+
+        condiciones = [Estancia.salida.is_(None)]
+        if fecha_desde:
+            desde = datetime.combine(fecha_desde, time.min, tzinfo=BOGOTA)
+            condiciones.append(Estancia.entrada >= desde.astimezone(timezone.utc))
+        if fecha_hasta:
+            hasta_exclusivo = datetime.combine(
+                fecha_hasta + timedelta(days=1), time.min, tzinfo=BOGOTA
+            )
+            condiciones.append(Estancia.entrada < hasta_exclusivo.astimezone(timezone.utc))
+        placa_normalizada = placa.strip().upper() if placa and placa.strip() else None
+        if placa_normalizada:
+            condiciones.append(Vehiculo.placa.contains(placa_normalizada, autoescape=True))
+
+        rows = self.session.execute(
+            select(
+                Estancia.id,
+                Vehiculo.placa.label("placa"),
+                Vehiculo.marca.label("marca"),
+                Vehiculo.modelo.label("modelo"),
+                Vehiculo.color.label("color"),
+                Vehiculo.tipo.label("tipo"),
+                Celda.codigo.label("celda"),
+                Estancia.entrada,
+                Operador.nombre.label("operador_entrada"),
+            )
+            .join(Vehiculo, Vehiculo.id == Estancia.vehiculo_id)
+            .join(Celda, Celda.id == Estancia.celda_id)
+            .join(Operador, Operador.id == Estancia.operador_entrada_id)
+            .where(*condiciones)
+            .order_by(Estancia.entrada.desc(), Estancia.id.desc())
+        ).mappings().all()
+        return [EstanciaAbiertaDetalle(**dict(row)) for row in rows]
+
+    @transaccion
     def historial(
         self,
         fecha_desde: date | None,
@@ -105,6 +148,7 @@ class ServicioEstancia:
         placa: str | None,
         offset: int,
         limit: int,
+        estado: str | None = None,
     ) -> EstanciasHistorialPagina:
         if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
             raise EstanciaError(422, "La fecha desde no puede ser posterior a la fecha hasta.")
@@ -121,6 +165,10 @@ class ServicioEstancia:
         placa_normalizada = placa.strip().upper() if placa and placa.strip() else None
         if placa_normalizada:
             condiciones.append(Vehiculo.placa.contains(placa_normalizada, autoescape=True))
+        if estado == "ABIERTAS":
+            condiciones.append(Estancia.salida.is_(None))
+        elif estado == "CERRADAS":
+            condiciones.append(Estancia.salida.is_not(None))
 
         total = self.session.scalar(
             select(func.count())
@@ -159,6 +207,23 @@ class ServicioEstancia:
     @transaccion
     def entrada(self, data: EntradaCrear) -> EstanciaRespuesta:
         vehiculo = self._vehiculo(data.placa)
+        estado_mensualidad = self.session.scalar(
+            text(
+                """
+                SELECT estado
+                FROM mensualidad
+                WHERE id_vehiculo = :vehiculo_id
+                ORDER BY id_mensualidad DESC
+                LIMIT 1
+                """
+            ),
+            {"vehiculo_id": vehiculo.id},
+        )
+        if estado_mensualidad != "activo":
+            raise EstanciaError(
+                409,
+                "La mensualidad de este vehículo no está activa; no se puede registrar la entrada.",
+            )
         celda = self.session.get(Celda, data.celda_id)
         if celda is None:
             raise EstanciaError(404, "Celda no encontrada.")

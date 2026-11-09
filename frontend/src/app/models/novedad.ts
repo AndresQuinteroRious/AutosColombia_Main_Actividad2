@@ -16,7 +16,6 @@ export interface NovedadesPagina {
 export interface NovedadVehiculoCrear {
   vehiculo_id: number;
   descripcion: string;
-  fecha: string;
 }
 
 export interface NovedadHistorialFiltros {

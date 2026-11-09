@@ -44,6 +44,23 @@ class EstanciasHistorialPagina(BaseModel):
     limit: int
 
 
+class EstanciaAbiertaDetalle(BaseModel):
+    id: int
+    placa: str
+    marca: str
+    modelo: int
+    color: str
+    tipo: str
+    celda: str
+    entrada: datetime
+    operador_entrada: str
+
+    @field_validator("entrada")
+    @classmethod
+    def fecha_utc(cls, value: datetime) -> datetime:
+        return value.astimezone(timezone.utc)
+
+
 class SalidaCrear(BaseModel):
     model_config = ConfigDict(extra="forbid")
     placa: Placa
