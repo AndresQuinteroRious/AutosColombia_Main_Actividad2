@@ -63,6 +63,33 @@
           </div>
         </fieldset>
       </form>
+      @if (editingUser()) {
+        <div class="actions">
+          <button type="button" (click)="confirmPasswordReset()" [disabled]="busy()">
+            Restablecer contraseña al teléfono
+          </button>
+        </div>
+      }
+    </section>
+  }
+  @if (pendingPasswordReset(); as user) {
+    <section
+      class="panel confirmation"
+      role="alertdialog"
+      aria-labelledby="reset-password-title"
+      aria-describedby="reset-password-description"
+    >
+      <h2 id="reset-password-title">Restablecer contraseña de {{ user.nombre }}</h2>
+      <p id="reset-password-description">
+        La contraseña temporal será el teléfono registrado (<strong>{{ user.telefono }}</strong>).
+        En su próximo inicio de sesión, el usuario deberá crear una nueva contraseña.
+      </p>
+      <div class="actions">
+        <button type="button" (click)="cancelPasswordReset()" [disabled]="busy()">Cancelar</button>
+        <button type="button" class="primary" (click)="resetPassword()" [disabled]="busy()">
+          {{ saving() ? 'Restableciendo…' : 'Confirmar restablecimiento' }}
+        </button>
+      </div>
     </section>
   }
   @if (pendingDelete(); as user) {

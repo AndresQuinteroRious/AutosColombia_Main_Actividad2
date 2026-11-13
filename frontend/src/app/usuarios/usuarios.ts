@@ -44,7 +44,9 @@ export class Usuarios {
   readonly busy = computed(() => this.loading() || this.saving());
   readonly showForm = signal(false);
   readonly editing = signal<number | null>(null);
+  readonly editingUser = signal<Usuario | null>(null);
   readonly pendingDelete = signal<Usuario | null>(null);
+  readonly pendingPasswordReset = signal<Usuario | null>(null);
   readonly listError = signal('');
   readonly actionError = signal('');
   readonly success = signal('');
@@ -84,8 +86,10 @@ export class Usuarios {
     if (this.busy()) return;
     this.form.reset();
     this.editing.set(null);
+    this.editingUser.set(null);
     this.showForm.set(true);
     this.pendingDelete.set(null);
+    this.pendingPasswordReset.set(null);
     this.actionError.set('');
     this.success.set('');
   }
@@ -96,6 +100,7 @@ export class Usuarios {
     this.actionError.set('');
     this.success.set('');
     this.pendingDelete.set(null);
+    this.pendingPasswordReset.set(null);
     this.api
       .get(user.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -103,6 +108,7 @@ export class Usuarios {
         next: (data) => {
           this.loading.set(false);
           this.editing.set(data.id);
+          this.editingUser.set(data);
           this.form.reset(data);
           this.showForm.set(true);
         },
@@ -117,6 +123,8 @@ export class Usuarios {
     if (this.busy()) return;
     this.showForm.set(false);
     this.pendingDelete.set(null);
+    this.pendingPasswordReset.set(null);
+    this.editingUser.set(null);
     this.actionError.set('');
   }
 
@@ -153,6 +161,7 @@ export class Usuarios {
       next: (user) => {
         this.saving.set(false);
         this.showForm.set(false);
+        this.editingUser.set(null);
         this.success.set(
           `Usuario ${user.nombre} ${id === null ? 'registrado' : 'actualizado'} correctamente.`,
         );
@@ -197,6 +206,47 @@ export class Usuarios {
     this.showForm.set(false);
     this.actionError.set('');
     this.success.set('');
+    this.pendingPasswordReset.set(null);
+  }
+
+  confirmPasswordReset(): void {
+    const user = this.editingUser();
+    if (!user || this.busy()) return;
+    this.pendingPasswordReset.set(user);
+    this.pendingDelete.set(null);
+    this.actionError.set('');
+    this.success.set('');
+  }
+
+  cancelPasswordReset(): void {
+    this.pendingPasswordReset.set(null);
+  }
+
+  resetPassword(): void {
+    const user = this.pendingPasswordReset();
+    if (!user || this.busy()) return;
+    this.saving.set(true);
+    this.actionError.set('');
+    this.api
+      .resetPassword(user.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.saving.set(false);
+          this.pendingPasswordReset.set(null);
+          this.showForm.set(false);
+          this.editing.set(null);
+          this.editingUser.set(null);
+          this.success.set(
+            `Contraseña de ${user.nombre} restablecida al teléfono registrado. Deberá cambiarla en su próximo inicio de sesión.`,
+          );
+        },
+        error: (error) => {
+          this.saving.set(false);
+          this.actionError.set(this.errorMessage(error));
+          if (error.status === 404) this.pendingPasswordReset.set(null);
+        },
+      });
   }
 
   remove(): void {

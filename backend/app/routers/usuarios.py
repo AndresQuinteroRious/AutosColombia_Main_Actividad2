@@ -99,6 +99,17 @@ def update(id: UserId, data: UsuarioActualizar, session: DatabaseSession, curren
     return service.update_user(session, id, data)
 
 
+@router.post("/{id}/restablecer-contrasena")
+def reset_password(
+    id: UserId,
+    session: DatabaseSession,
+    current_admin: Usuario = Depends(require_admin),
+):
+    del current_admin
+    service.resetear_contrasena(session, id)
+    return {"status": "ok", "mensaje": "La contraseña se restableció al teléfono registrado."}
+
+
 @router.delete("/{id}", status_code=204)
 def delete(id: UserId, session: DatabaseSession, current_user: Usuario = Depends(get_current_user)) -> Response:
     if current_user.rol != "ADMINISTRADOR" and current_user.id != id:

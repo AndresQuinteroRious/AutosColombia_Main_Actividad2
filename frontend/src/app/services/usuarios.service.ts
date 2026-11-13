@@ -41,6 +41,13 @@ export class UsuariosService {
       headers: this.getAuthHeaders(),
     }).pipe(timeout(15000));
   }
+  resetPassword(id: number) {
+    return this.http.post<{ status: string; mensaje: string }>(
+      `${this.users}/${id}/restablecer-contrasena`,
+      {},
+      { headers: this.getAuthHeaders() },
+    ).pipe(timeout(15000));
+  }
   delete(id: number) {
     return this.http.delete<void>(`${this.users}/${id}`, {
       headers: this.getAuthHeaders(),

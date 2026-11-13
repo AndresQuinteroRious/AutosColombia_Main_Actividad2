@@ -253,6 +253,16 @@ def update_user(session: Session, user_id: int, data: UsuarioActualizar) -> Usua
 
 
 @database_operation
+def resetear_contrasena(session: Session, user_id: int) -> Usuario:
+    user = find_user(session, user_id)
+    user.contrasena_hash = None
+    user.requiere_cambio_contrasena = True
+    session.commit()
+    session.refresh(user)
+    return user
+
+
+@database_operation
 def delete_user(session: Session, user_id: int) -> None:
     user = find_user(session, user_id)
     session.delete(user)

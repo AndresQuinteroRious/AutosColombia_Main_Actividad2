@@ -14,6 +14,7 @@ from app.services.usuario import (
     cambiar_contrasena,
     create_user,
     obtener_usuario_por_token,
+    resetear_contrasena,
 )
 from app.services.estancia import ServicioEstancia
 
@@ -110,6 +111,28 @@ def test_token_de_usuario_pendiente_solo_permita_cambiar_contrasena():
     with pytest.raises(UsuarioError, match="cambiar tu contraseña"):
         obtener_usuario_por_token(session, token)
     assert obtener_usuario_por_token(session, token, permitir_cambio_contrasena=True) is user
+
+
+def test_resetear_contrasena_elimina_hash_y_exige_cambio():
+    session = MagicMock()
+    user = Usuario(
+        id=5,
+        nombre="Ana Pérez",
+        documento="CC-123",
+        telefono="3001234567",
+        fecha_vencimiento=date(2030, 1, 1),
+        contrasena_hash="hash-anterior",
+        requiere_cambio_contrasena=False,
+    )
+    session.get.return_value = user
+
+    updated = resetear_contrasena(session, 5)
+
+    assert updated.contrasena_hash is None
+    assert updated.requiere_cambio_contrasena is True
+    session.query.return_value.filter_by.return_value.first.return_value = user
+    assert autenticar_usuario(session, "CC-123", "3001234567") is user
+    session.commit.assert_called_once()
 
 
 def test_operador_actual_repara_usuario_existente_sin_operador():
