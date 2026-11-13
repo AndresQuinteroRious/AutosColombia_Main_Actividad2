@@ -3,7 +3,7 @@
 import decimal
 from datetime import datetime, timezone
 
-from sqlalchemy import BigInteger, CheckConstraint, Date, DateTime, ForeignKey, Identity, Index, Integer, Numeric, Text, UniqueConstraint, func, text
+from sqlalchemy import BigInteger, Boolean, CheckConstraint, Date, DateTime, ForeignKey, Identity, Index, Integer, Numeric, Text, UniqueConstraint, func, text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, validates
 
 
@@ -173,6 +173,8 @@ class Usuario(Base):
     turno: Mapped[str] = mapped_column(Text, nullable=False, default="MAÑANA")
     horas_semana: Mapped[int] = mapped_column(Integer, nullable=False, default=42)
     ausentismo_horas: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    contrasena_hash: Mapped[str | None] = mapped_column(Text, nullable=True)
+    requiere_cambio_contrasena: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     @validates("nombre", "documento", "telefono")
     def validate_text(self, key: str, value: str) -> str:

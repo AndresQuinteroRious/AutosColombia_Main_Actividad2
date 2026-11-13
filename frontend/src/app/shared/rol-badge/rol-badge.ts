@@ -1,4 +1,5 @@
 import { Component, computed, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { ApiService } from '../../services/api.service';
 
 @Component({
@@ -22,6 +23,7 @@ import { ApiService } from '../../services/api.service';
 })
 export class RolBadge {
   private readonly api = inject(ApiService);
+  private readonly router = inject(Router);
   
   readonly isLoggedIn = computed(() => this.api.isLoggedIn());
   readonly userRol = computed(() => this.api.getRol()?.toUpperCase() || '');
@@ -36,5 +38,6 @@ export class RolBadge {
 
   logout(): void {
     this.api.logout();
+    void this.router.navigateByUrl('/login');
   }
 }

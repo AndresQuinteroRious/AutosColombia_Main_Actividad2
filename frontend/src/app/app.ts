@@ -16,6 +16,10 @@ export class App {
     return this.api.isLoggedIn();
   }
 
+  canUseApp(): boolean {
+    return this.api.isLoggedIn() && !this.api.requiereCambioContrasena();
+  }
+
   isAdmin(): boolean {
     return this.api.getRol() === 'ADMINISTRADOR';
   }

@@ -22,10 +22,17 @@ export class ApiService {
     return this.http.get<{ status?: unknown } | null>(`${this.base}/health`);
   }
 
-  login(documento: string, telefono: string) {
+  login(documento: string, credencial: string) {
     return this.http.post<any>(`${this.base}/usuarios/login`, {
       documento,
-      telefono,
+      telefono: credencial,
+      contrasena: credencial,
+    }).pipe(timeout(15000));
+  }
+
+  cambiarContrasena(contrasena: string) {
+    return this.http.post<{ status: string }>(`${this.base}/usuarios/cambiar-contrasena`, { contrasena }, {
+      headers: this.getAuthHeaders(),
     }).pipe(timeout(15000));
   }
 
@@ -39,6 +46,15 @@ export class ApiService {
 
   guardarNombre(nombre: string) {
     localStorage.setItem('nombre_usuario', nombre);
+  }
+
+  guardarCambioContrasenaRequerido(requerido: boolean) {
+    if (requerido) localStorage.setItem('cambio_contrasena_requerido', 'true');
+    else localStorage.removeItem('cambio_contrasena_requerido');
+  }
+
+  requiereCambioContrasena(): boolean {
+    return localStorage.getItem('cambio_contrasena_requerido') === 'true';
   }
 
   getRol(): string | null {
@@ -55,6 +71,7 @@ export class ApiService {
     localStorage.removeItem('token_admin');
     localStorage.removeItem('rol_admin');
     localStorage.removeItem('nombre_usuario');
+    localStorage.removeItem('cambio_contrasena_requerido');
   }
 
   isLoggedIn(): boolean {

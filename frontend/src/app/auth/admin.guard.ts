@@ -14,27 +14,25 @@ export const accessGuard: CanActivateFn = () => {
   const api = inject(ApiService);
   const router = inject(Router);
 
-  if (!api.isLoggedIn()) {
-    router.navigate(['/login']);
-    return false;
-  }
-
-  return true;
+  return api.isLoggedIn() && !api.requiereCambioContrasena()
+    ? true
+    : router.createUrlTree(['/login']);
 };
 
 export const sessionGuard: CanActivateFn = () => {
   const api = inject(ApiService);
   const router = inject(Router);
-  return api.isLoggedIn() ? true : router.createUrlTree(['/login']);
+  return api.isLoggedIn() && !api.requiereCambioContrasena()
+    ? true
+    : router.createUrlTree(['/login']);
 };
 
 export const adminGuard: CanActivateFn = () => {
   const api = inject(ApiService);
   const router = inject(Router);
 
-  if (!api.isLoggedIn()) {
-    router.navigate(['/login']);
-    return false;
+  if (!api.isLoggedIn() || api.requiereCambioContrasena()) {
+    return router.createUrlTree(['/login']);
   }
 
   if (normalizeRol(api.getRol()) !== 'ADMINISTRADOR') {

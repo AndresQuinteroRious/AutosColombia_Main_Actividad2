@@ -1,22 +1,22 @@
 <div class="page-shell">
   <header class="site-header">
-    <a class="brand" [routerLink]="isLoggedIn() ? '/' : '/login'" aria-label="Autos Colombia, inicio">
+    <a class="brand" [routerLink]="canUseApp() ? '/' : '/login'" aria-label="Autos Colombia, inicio">
       <span class="brand-mark" aria-hidden="true">AC</span><span>Autos Colombia</span>
     </a>
     <nav aria-label="Navegación principal">
-      @if (isLoggedIn()) {
+      @if (canUseApp()) {
         <a routerLink="/control-acceso" routerLinkActive="active" ariaCurrentWhenActive="page"
           >Control de acceso</a
         >
       }
 
-      @if (isAdmin()) {
+      @if (canUseApp() && isAdmin()) {
         <a routerLink="/gestion/celdas" routerLinkActive="active" ariaCurrentWhenActive="page"
           >Celdas</a
         >
       }
 
-      @if (isLoggedIn()) {
+      @if (canUseApp()) {
       <a
         routerLink="/"
         routerLinkActive="active"
@@ -26,7 +26,7 @@
       >
       }
 
-      @if (isAdmin()) {
+      @if (canUseApp() && isAdmin()) {
         <a routerLink="/gestion/vehiculos" routerLinkActive="active" ariaCurrentWhenActive="page"
           >Vehículos</a
         >

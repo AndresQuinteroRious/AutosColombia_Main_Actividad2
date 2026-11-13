@@ -535,9 +535,21 @@ Respuesta:
   "usuario": { ... },
   "token": "MzpBRE1JTklTVFJBRE9SOjEwNDAwMzQ5MDI=",
   "rol": "ADMINISTRADOR",
-  "permisos": ["gestionar_usuarios", "gestionar_turnos", ...]
+  "permisos": ["gestionar_usuarios", "gestionar_turnos", ...],
+  "requiere_cambio_contrasena": true
 }
 ```
+
+Los usuarios creados desde la aplicación deben iniciar su primera sesión con su
+documento y teléfono registrado. El sistema solicitará crear una contraseña de
+al menos 10 caracteres antes de permitir el resto de operaciones. Desde entonces
+se inicia sesión con documento y contraseña. La contraseña se guarda en
+`usuario.contrasena_hash` mediante `scrypt`; no se almacena en texto claro. Para
+guardar el cambio, la aplicación llama a `POST /usuarios/cambiar-contrasena`.
+Las cuentas existentes conservan el inicio de sesión con documento y teléfono.
+
+La base debe tener aplicada la revisión `contrasena_usuario` (`alembic upgrade
+head`) antes de iniciar el backend con esta versión.
 
 #### Uso del token
 

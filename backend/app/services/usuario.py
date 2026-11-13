@@ -1,4 +1,7 @@
 import base64
+import hashlib
+import hmac
+import secrets
 from functools import wraps
 
 from sqlalchemy import func, select
@@ -99,20 +102,55 @@ def database_operation(operation):
     return wrapped
 
 
+def _hash_password(password: str) -> str:
+    salt = secrets.token_bytes(16)
+    digest = hashlib.scrypt(password.encode("utf-8"), salt=salt, n=2**14, r=8, p=1, dklen=64)
+    return f"scrypt$16384$8$1${salt.hex()}${digest.hex()}"
+
+
+def _verify_password(password: str, encoded: str) -> bool:
+    try:
+        algorithm, n, r, p, salt_hex, digest_hex = encoded.split("$")
+        if algorithm != "scrypt":
+            return False
+        expected = bytes.fromhex(digest_hex)
+        actual = hashlib.scrypt(
+            password.encode("utf-8"),
+            salt=bytes.fromhex(salt_hex),
+            n=int(n),
+            r=int(r),
+            p=int(p),
+            dklen=len(expected),
+        )
+    except (ValueError, TypeError):
+        return False
+    return hmac.compare_digest(actual, expected)
+
+
 @database_operation
-def autenticar_usuario(session: Session, documento: str, telefono: str) -> Usuario:
+def autenticar_usuario(
+    session: Session,
+    documento: str,
+    telefono: str | None,
+    contrasena: str | None = None,
+) -> Usuario:
     documento_normalizado = str(documento or "").strip()
     telefono_normalizado = str(telefono or "").strip()
-    if not documento_normalizado or not telefono_normalizado:
-        raise UsuarioError(401, "Documento y teléfono son obligatorios para iniciar sesión.")
-
-    usuario = session.query(Usuario).filter_by(documento=documento_normalizado, telefono=telefono_normalizado).first()
+    usuario = session.query(Usuario).filter_by(documento=documento_normalizado).first()
     if usuario is None:
         raise UsuarioError(401, "Credenciales inválidas. Verifica el documento y el teléfono.")
+    if usuario.contrasena_hash:
+        credencial_valida = bool(contrasena) and _verify_password(contrasena, usuario.contrasena_hash)
+    else:
+        credencial_valida = bool(telefono_normalizado) and hmac.compare_digest(
+            usuario.telefono, telefono_normalizado
+        )
+    if not credencial_valida:
+        raise UsuarioError(401, "Credenciales inválidas. Verifica el documento y la contraseña o teléfono.")
     return usuario
 
 
-def obtener_usuario_por_token(session: Session, token: str) -> Usuario:
+def obtener_usuario_por_token(session: Session, token: str, permitir_cambio_contrasena: bool = False) -> Usuario:
     if not token:
         raise UsuarioError(401, "Falta el token de sesión.")
     token_ajustado = token + ("=" * (-len(token) % 4))
@@ -129,6 +167,17 @@ def obtener_usuario_por_token(session: Session, token: str) -> Usuario:
     usuario = session.get(Usuario, int(usuario_id))
     if usuario is None:
         raise UsuarioError(401, "La sesión del usuario no existe o expiró.")
+    if usuario.requiere_cambio_contrasena and not permitir_cambio_contrasena:
+        raise UsuarioError(403, "Debes cambiar tu contraseña antes de continuar.")
+    return usuario
+
+
+@database_operation
+def cambiar_contrasena(session: Session, usuario: Usuario, contrasena: str) -> Usuario:
+    usuario.contrasena_hash = _hash_password(contrasena)
+    usuario.requiere_cambio_contrasena = False
+    session.commit()
+    session.refresh(usuario)
     return usuario
 
 
@@ -169,6 +218,7 @@ def get_cobertura_semanal(session: Session) -> dict:
 @database_operation
 def create_user(session: Session, data: UsuarioCrear) -> Usuario:
     user = Usuario(**data.model_dump())
+    user.requiere_cambio_contrasena = True
     session.add(user)
     session.add(Operador(
         nombre=user.nombre,

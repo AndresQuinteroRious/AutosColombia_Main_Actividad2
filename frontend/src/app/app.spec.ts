@@ -3,6 +3,7 @@ import { provideRouter, Router } from '@angular/router';
 import { App } from './app';
 import { accessGuard } from './auth/admin.guard';
 import { ApiService } from './services/api.service';
+import { vi } from 'vitest';
 
 describe('Navegación', () => {
   it('mantiene disponible el inicio de sesión cuando no hay sesión', async () => {
@@ -30,11 +31,13 @@ describe('Navegación', () => {
   });
 
   it('permite el acceso al control de acceso para administradores', () => {
-    const api = jasmine.createSpyObj<ApiService>('ApiService', ['isLoggedIn', 'getRol']);
-    api.isLoggedIn.and.returnValue(true);
-    api.getRol.and.returnValue('ADMINISTRADOR');
+    const api = {
+      isLoggedIn: vi.fn(() => true),
+      getRol: vi.fn(() => 'ADMINISTRADOR'),
+      requiereCambioContrasena: vi.fn(() => false),
+    } as unknown as ApiService;
 
-    const router = jasmine.createSpyObj<Router>('Router', ['navigate']);
+    const router = { navigate: vi.fn(), createUrlTree: vi.fn() } as unknown as Router;
 
     TestBed.configureTestingModule({
       providers: [
@@ -45,7 +48,7 @@ describe('Navegación', () => {
 
     const result = TestBed.runInInjectionContext(() => accessGuard({} as any, {} as any));
 
-    expect(result).toBeTrue();
+    expect(result).toBe(true);
     expect(router.navigate).not.toHaveBeenCalled();
   });
 });

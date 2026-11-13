@@ -5,7 +5,15 @@ from sqlalchemy.orm import Session
 
 from app.database import get_session
 from app.models import Usuario
-from app.schemas.usuario import UsuarioActualizar, UsuarioCrear, UsuarioLogin, UsuarioLoginRespuesta, UsuarioRespuesta, UsuariosPagina
+from app.schemas.usuario import (
+    CambioContrasena,
+    UsuarioActualizar,
+    UsuarioCrear,
+    UsuarioLogin,
+    UsuarioLoginRespuesta,
+    UsuarioRespuesta,
+    UsuariosPagina,
+)
 from app.services import usuario as service
 
 router = APIRouter(prefix="/usuarios", tags=["Usuarios"])
@@ -31,7 +39,7 @@ def require_admin(usuario_actual: Usuario = Depends(get_current_user)) -> Usuari
 
 @router.post("/login", response_model=UsuarioLoginRespuesta)
 def login(data: UsuarioLogin, session: DatabaseSession):
-    usuario = service.autenticar_usuario(session, data.documento, data.telefono)
+    usuario = service.autenticar_usuario(session, data.documento, data.telefono, data.contrasena)
     token = service.crear_token_usuario(usuario)
     permisos = list(service.permisos_del_rol(usuario.rol).keys())
     return {
@@ -39,7 +47,22 @@ def login(data: UsuarioLogin, session: DatabaseSession):
         "token": token,
         "rol": usuario.rol,
         "permisos": permisos,
+        "requiere_cambio_contrasena": usuario.requiere_cambio_contrasena,
     }
+
+
+@router.post("/cambiar-contrasena")
+def change_password(
+    data: CambioContrasena,
+    session: DatabaseSession,
+    authorization: Annotated[str | None, Header(alias="Authorization")] = None,
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Se requiere un token de sesión válido.")
+    token = authorization.split(" ", 1)[1].strip()
+    user = service.obtener_usuario_por_token(session, token, permitir_cambio_contrasena=True)
+    service.cambiar_contrasena(session, user, data.contrasena)
+    return {"status": "ok"}
 
 
 @router.post("", response_model=UsuarioRespuesta, status_code=201)

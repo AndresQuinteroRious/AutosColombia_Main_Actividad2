@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Annotated
 
-from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field, field_validator
+from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field, field_validator, model_validator
 
 from app.models import required_text
 
@@ -64,7 +64,20 @@ class UsuarioLogin(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     documento: Documento
-    telefono: Texto
+    telefono: Texto | None = None
+    contrasena: str | None = Field(default=None, min_length=1, max_length=256)
+
+    @model_validator(mode="after")
+    def validate_login_credential(self):
+        if not self.telefono and not self.contrasena:
+            raise ValueError("Ingresa el teléfono o la contraseña.")
+        return self
+
+
+class CambioContrasena(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    contrasena: str = Field(min_length=10, max_length=256)
 
 
 class UsuarioActualizar(BaseModel):
@@ -130,6 +143,7 @@ class UsuarioLoginRespuesta(BaseModel):
     token: str
     rol: str
     permisos: list[str]
+    requiere_cambio_contrasena: bool
 
 
 class UsuariosPagina(BaseModel):
