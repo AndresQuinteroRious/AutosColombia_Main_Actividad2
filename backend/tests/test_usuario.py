@@ -32,6 +32,22 @@ def test_create_user_creates_associated_operator_in_same_transaction():
     session.commit.assert_called_once()
 
 
+def test_create_user_allows_multiple_administrators():
+    session = MagicMock()
+    data = UsuarioCrear(
+        nombre="Segundo administrador",
+        documento="CC-456",
+        telefono="3007654321",
+        fecha_vencimiento=date(2030, 1, 1),
+        rol="ADMINISTRADOR",
+    )
+
+    user = create_user(session, data)
+
+    assert user.rol == "ADMINISTRADOR"
+    session.commit.assert_called_once()
+
+
 def test_operador_actual_repara_usuario_existente_sin_operador():
     session = MagicMock()
     session.scalars.return_value = []

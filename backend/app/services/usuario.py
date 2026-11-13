@@ -168,13 +168,6 @@ def get_cobertura_semanal(session: Session) -> dict:
 
 @database_operation
 def create_user(session: Session, data: UsuarioCrear) -> Usuario:
-    # Verificar si se intenta crear un administrador cuando ya existe uno
-    rol_normalizado = str(data.rol or "").strip().upper()
-    if rol_normalizado == "ADMINISTRADOR":
-        admin_existente = session.query(Usuario).filter_by(rol="ADMINISTRADOR").first()
-        if admin_existente is not None:
-            raise UsuarioError(409, "Solo puede existir un administrador en el sistema.")
-    
     user = Usuario(**data.model_dump())
     session.add(user)
     session.add(Operador(
@@ -202,17 +195,6 @@ def get_user(session: Session, user_id: int) -> Usuario:
 @database_operation
 def update_user(session: Session, user_id: int, data: UsuarioActualizar) -> Usuario:
     user = find_user(session, user_id)
-    
-    # Verificar si se intenta cambiar el rol a ADMINISTRADOR cuando ya existe uno
-    if "rol" in data.model_dump(exclude_unset=True):
-        nuevo_rol = str(data.rol or "").strip().upper()
-        if nuevo_rol == "ADMINISTRADOR":
-            # Si el usuario ya es administrador, permitir la actualización
-            if user.rol != "ADMINISTRADOR":
-                admin_existente = session.query(Usuario).filter_by(rol="ADMINISTRADOR").first()
-                if admin_existente is not None:
-                    raise UsuarioError(409, "Solo puede existir un administrador en el sistema.")
-    
     for key, value in data.model_dump(exclude_unset=True).items():
         setattr(user, key, value)
     session.commit()

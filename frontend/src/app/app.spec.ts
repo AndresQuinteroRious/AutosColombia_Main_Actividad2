@@ -29,7 +29,7 @@ describe('Navegación', () => {
     ).toBeNull();
   });
 
-  it('bloquea el acceso al control de acceso para administradores', () => {
+  it('permite el acceso al control de acceso para administradores', () => {
     const api = jasmine.createSpyObj<ApiService>('ApiService', ['isLoggedIn', 'getRol']);
     api.isLoggedIn.and.returnValue(true);
     api.getRol.and.returnValue('ADMINISTRADOR');
@@ -45,7 +45,7 @@ describe('Navegación', () => {
 
     const result = TestBed.runInInjectionContext(() => accessGuard({} as any, {} as any));
 
-    expect(result).toBeFalse();
-    expect(router.navigate).toHaveBeenCalledWith(['/']);
+    expect(result).toBeTrue();
+    expect(router.navigate).not.toHaveBeenCalled();
   });
 });

@@ -46,19 +46,6 @@ import { ApiService } from '../services/api.service';
             </div>
           </label>
 
-          <div>
-            <label style="display: block; margin-bottom: 8px; font-weight: 700; color: #1a2d3d; font-size: 14px;">Rol de acceso</label>
-            <select
-              [(ngModel)]="rolSeleccionado"
-              (ngModelChange)="cambiarRol($event)"
-              style="width: 100%; padding: 12px 14px; border: 1px solid #dfe8f4; border-radius: 12px; background: #f8fbff; color: #1a2d3d; font-size: 15px; box-sizing: border-box; outline: none; box-shadow: inset 0 1px 2px rgba(29, 78, 137, 0.04);"
-            >
-              @for (rol of roles; track rol.value) {
-                <option [value]="rol.value">{{ rol.label }}</option>
-              }
-            </select>
-            <small style="display: block; margin-top: 8px; color: #5b6b7d; font-size: 12px;">Sesión actual: {{ rolActual() }}</small>
-          </div>
         </div>
 
         <button
