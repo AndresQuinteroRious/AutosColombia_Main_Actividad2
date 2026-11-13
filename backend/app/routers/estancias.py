@@ -44,7 +44,7 @@ def operador_actual(
     session: DatabaseSession,
     user: Usuario = Depends(usuario_actual),
 ) -> dict:
-    return ServicioEstancia(session).operador_actual(user.documento)
+    return ServicioEstancia(session).operador_actual(user)
 
 
 @router.get("/celdas-disponibles", response_model=list[CeldaRespuesta])

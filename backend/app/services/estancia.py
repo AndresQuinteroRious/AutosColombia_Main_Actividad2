@@ -6,7 +6,7 @@ from sqlalchemy import and_, func, select, text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, aliased
 
-from app.models import Celda, Estancia, Operador, Vehiculo, required_text
+from app.models import Celda, Estancia, Operador, Usuario, Vehiculo, required_text
 from app.schemas.celda import CeldaRespuesta
 from app.schemas.estancia import (
     EntradaCrear, SalidaCrear, EstanciaRespuesta, EstanciaAbiertaRespuesta,
@@ -67,24 +67,42 @@ class ServicioEstancia:
             raise EstanciaError(404, "Operador no encontrado.")
         return operador
 
-    def operador_actual(self, documento: str) -> dict:
-        operadores = self.session.execute(
-            text(
-                """
-                SELECT id, nombre, telefono
-                FROM operador
-                WHERE upper(btrim(documento)) = upper(btrim(:documento))
-                ORDER BY id
-                LIMIT 2
-                """
-            ),
-            {"documento": documento},
-        ).mappings().all()
-        if not operadores:
-            raise EstanciaError(404, "El usuario que inició sesión no tiene un operador asociado.")
+    def operador_actual(self, usuario: Usuario) -> dict:
+        documento = usuario.documento.strip().upper()
+        operadores = list(self.session.scalars(
+            select(Operador)
+            .where(func.upper(func.btrim(Operador.documento)) == documento)
+            .order_by(Operador.id)
+            .limit(2)
+        ))
         if len(operadores) > 1:
             raise EstanciaError(409, "El usuario tiene más de un operador asociado; revisa sus datos.")
-        return dict(operadores[0])
+        if operadores:
+            operador = operadores[0]
+        else:
+            # Vincula usuarios anteriores al cambio y crea el operador si aún no existe.
+            operador = self.session.scalar(
+                select(Operador).where(
+                    func.upper(func.btrim(Operador.nombre)) == usuario.nombre.strip().upper(),
+                    Operador.telefono == usuario.telefono,
+                    Operador.documento.is_(None),
+                ).order_by(Operador.id).limit(1)
+            )
+            if operador is None:
+                operador = Operador(nombre=usuario.nombre, telefono=usuario.telefono)
+                self.session.add(operador)
+            operador.documento = documento
+            try:
+                self.session.commit()
+                self.session.refresh(operador)
+            except IntegrityError:
+                self.session.rollback()
+                operador = self.session.scalar(
+                    select(Operador).where(func.upper(func.btrim(Operador.documento)) == documento)
+                )
+                if operador is None:
+                    raise EstanciaError(409, "No se pudo asociar un operador al usuario.") from None
+        return {"id": operador.id, "nombre": operador.nombre, "telefono": operador.telefono}
 
     def celdas_disponibles(self) -> list[Celda]:
         abiertas = select(Estancia.id).where(

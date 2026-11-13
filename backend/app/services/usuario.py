@@ -5,7 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.models import Usuario
+from app.models import Operador, Usuario
 from app.schemas.usuario import UsuarioActualizar, UsuarioCrear
 
 
@@ -177,6 +177,11 @@ def create_user(session: Session, data: UsuarioCrear) -> Usuario:
     
     user = Usuario(**data.model_dump())
     session.add(user)
+    session.add(Operador(
+        nombre=user.nombre,
+        telefono=user.telefono,
+        documento=user.documento,
+    ))
     session.commit()
     session.refresh(user)
     return user

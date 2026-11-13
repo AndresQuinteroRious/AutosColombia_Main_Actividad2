@@ -79,6 +79,7 @@ class Celda(Base):
 class Operador(Base):
     __tablename__ = "operador"
     __table_args__ = (
+        UniqueConstraint("documento", name="uq_operador_documento"),
         CheckConstraint("nombre ~ '[^[:space:]]'", name="ck_operador_nombre_no_vacio"),
         CheckConstraint("telefono ~ '[^[:space:]]'", name="ck_operador_telefono_no_vacio"),
     )
@@ -87,6 +88,7 @@ class Operador(Base):
     nombre: Mapped[str] = mapped_column(Text, nullable=False)
     telefono: Mapped[str] = mapped_column(Text, nullable=False)
     direccion: Mapped[str] = mapped_column(Text, nullable=True)
+    documento: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     @validates("nombre", "telefono")
     def validate_text(self, key: str, value: str) -> str:
