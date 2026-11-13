@@ -1,5 +1,5 @@
 import { Component, inject } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { ApiService } from './services/api.service';
 
 @Component({
@@ -10,6 +10,7 @@ import { ApiService } from './services/api.service';
 })
 export class App {
   private readonly api = inject(ApiService);
+  private readonly router = inject(Router);
 
   isLoggedIn(): boolean {
     return this.api.isLoggedIn();
@@ -21,5 +22,6 @@ export class App {
 
   logout(): void {
     this.api.logout();
+    void this.router.navigateByUrl('/login');
   }
 }

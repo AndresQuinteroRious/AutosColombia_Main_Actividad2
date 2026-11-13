@@ -1,5 +1,5 @@
 import { Routes } from '@angular/router';
-import { accessGuard, adminGuard } from './auth/admin.guard';
+import { accessGuard, adminGuard, sessionGuard } from './auth/admin.guard';
 
 export const routes: Routes = [
   {
@@ -25,7 +25,12 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     loadComponent: () => import('./celdas/celdas').then((m) => m.Celdas),
   },
-  { path: '', pathMatch: 'full', loadComponent: () => import('./home/home').then((m) => m.Home) },
+  {
+    path: '',
+    pathMatch: 'full',
+    canActivate: [sessionGuard],
+    loadComponent: () => import('./home/home').then((m) => m.Home),
+  },
   {
     path: 'gestion/vehiculos',
     title: 'Vehículos | Autos Colombia',
@@ -50,5 +55,5 @@ export const routes: Routes = [
     canActivate: [adminGuard],
     loadComponent: () => import('./pagos/pagos').then((m) => m.Pagos),
   },
-  { path: '**', redirectTo: '' },
+  { path: '**', redirectTo: 'login' },
 ];

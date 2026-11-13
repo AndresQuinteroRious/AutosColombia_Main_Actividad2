@@ -27,6 +27,12 @@ export const accessGuard: CanActivateFn = () => {
   return true;
 };
 
+export const sessionGuard: CanActivateFn = () => {
+  const api = inject(ApiService);
+  const router = inject(Router);
+  return api.isLoggedIn() ? true : router.createUrlTree(['/login']);
+};
+
 export const adminGuard: CanActivateFn = () => {
   const api = inject(ApiService);
   const router = inject(Router);

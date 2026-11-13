@@ -5,7 +5,7 @@ import { accessGuard } from './auth/admin.guard';
 import { ApiService } from './services/api.service';
 
 describe('Navegación', () => {
-  it('muestra acceso al inicio de sesión', async () => {
+  it('mantiene disponible el inicio de sesión cuando no hay sesión', async () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [provideRouter([])],
@@ -17,7 +17,7 @@ describe('Navegación', () => {
     );
   });
 
-  it('ofrece acceso a la gestión de vehículos', async () => {
+  it('no muestra enlaces de gestión mientras no hay sesión', async () => {
     await TestBed.configureTestingModule({
       imports: [App],
       providers: [provideRouter([])],
@@ -25,9 +25,8 @@ describe('Navegación', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
     expect(
-      (fixture.nativeElement as HTMLElement).querySelector('a[href="/gestion/vehiculos"]')
-        ?.textContent,
-    ).toBe('Vehículos');
+      (fixture.nativeElement as HTMLElement).querySelector('a[href="/gestion/vehiculos"]'),
+    ).toBeNull();
   });
 
   it('bloquea el acceso al control de acceso para administradores', () => {
