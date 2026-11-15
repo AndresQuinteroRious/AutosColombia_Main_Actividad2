@@ -13,6 +13,22 @@ import { RolBadge } from '../shared/rol-badge/rol-badge';
 const nonBlank: ValidatorFn = (c) =>
   typeof c.value === 'string' && c.value.trim() ? null : { required: true };
 const placa = (value: string) => value.trim().toUpperCase();
+const tipoCeldaParaVehiculo = (tipo: string): string => {
+  switch (tipo) {
+    case 'MOTO':
+      return 'MOTO';
+    case 'AUTOMOVIL':
+    case 'CAMIONETA':
+      return 'CARRO';
+    case 'FURGON':
+    case 'CAMION':
+      return 'CAMION';
+    case 'OTROS':
+      return 'OTRO';
+    default:
+      return '';
+  }
+};
 
 @Component({
   selector: 'app-control-acceso',
@@ -46,6 +62,7 @@ export class ControlAcceso {
   readonly busy = computed(() => this.saving() || this.querying());
   readonly estado = signal<EstadoVehiculo | null>(null);
   readonly errorEntrada = signal('');
+  readonly errorTipoEntrada = signal('');
   readonly errorConsulta = signal('');
   readonly exitoEntrada = signal('');
   readonly exitoSalida = signal('');
@@ -53,7 +70,13 @@ export class ControlAcceso {
   constructor() {
     this.entrada.controls.placa.valueChanges
       .pipe(takeUntilDestroyed(this.destroy))
-      .subscribe((value) => this.validarMensualidadEntrada(value));
+      .subscribe((value) => {
+        this.errorTipoEntrada.set('');
+        this.validarMensualidadEntrada(value);
+      });
+    this.entrada.controls.celda_id.valueChanges
+      .pipe(takeUntilDestroyed(this.destroy))
+      .subscribe(() => this.errorTipoEntrada.set(''));
     this.consulta.controls.placa.valueChanges
       .pipe(takeUntilDestroyed(this.destroy))
       .subscribe(() => {
@@ -120,6 +143,19 @@ export class ControlAcceso {
     }
     if (this.entrada.invalid) return;
     const raw = this.entrada.getRawValue();
+    const vehiculoSeleccionado = this.vehiculos().find((item) => item.placa === placa(raw.placa));
+    const celdaSeleccionada = this.celdas().find((item) => item.id === raw.celda_id);
+    if (
+      vehiculoSeleccionado &&
+      celdaSeleccionada &&
+      tipoCeldaParaVehiculo(vehiculoSeleccionado.tipo) !== celdaSeleccionada.tipo
+    ) {
+      this.errorTipoEntrada.set(
+        'El tipo de la celda debe coincidir con el tipo del vehículo seleccionado.',
+      );
+      return;
+    }
+    this.errorTipoEntrada.set('');
     const data = {
       placa: placa(raw.placa),
       celda_id: raw.celda_id!,

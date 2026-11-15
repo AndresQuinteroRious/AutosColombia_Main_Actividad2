@@ -9,7 +9,7 @@
   </header>
   <section class="panel" aria-label="Catálogos">
     <button type="button" (click)="cargarCatalogos()" [disabled]="catalogLoading() || saving()">
-      Actualizar catálogos
+      Actualizar parqueadero
     </button>
     @if (catalogLoading()) {
       <p role="status">Cargando vehículos, celdas disponibles y operador de sesión…</p>
@@ -35,10 +35,10 @@
       }
     }
     <p class="hint">
-      La lista de celdas excluye las que tienen una estancia abierta; la disponibilidad se vuelve
-      a validar al registrar la entrada.
+      La disponibilidad se valida después de registrar una entrada o salida de vehículo.
     </p>
   </section>
+
   <section class="panel" aria-labelledby="entry-title">
     <h2 id="entry-title">Registrar entrada</h2>
     <form [formGroup]="entrada" (ngSubmit)="registrarEntrada()">
@@ -51,7 +51,7 @@
               <option value="">Selecciona un vehículo</option>
               @for (vehicle of vehiculos(); track vehicle.id) {
                 <option [value]="vehicle.placa">
-                  {{ vehicle.placa }} · {{ vehicle.marca }} {{ vehicle.modelo }}
+                  {{ vehicle.placa }} · {{ vehicle.tipo }} · {{ vehicle.marca }} {{ vehicle.modelo }}
                 </option>
               }
             </select>
@@ -79,6 +79,9 @@
                 Selecciona una celda.
               }
             </span>
+            @if (errorTipoEntrada()) {
+              <span class="field-error" role="alert">{{ errorTipoEntrada() }}</span>
+            }
           </div>
           <div class="field">
             <label for="entry-operator">Operador de entrada</label

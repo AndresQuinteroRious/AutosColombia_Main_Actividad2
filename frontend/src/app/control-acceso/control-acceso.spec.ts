@@ -6,7 +6,7 @@ import { ControlAcceso } from './control-acceso';
 describe('Control de acceso', () => {
   let http: HttpTestingController;
   let c: ControlAcceso;
-  const celda = { id: 2, codigo: 'TEST-C', tipo: 'Libre' };
+  const celda = { id: 2, codigo: 'TEST-C', tipo: 'MOTO' };
   const stay = {
     id: 3,
     vehiculo_id: 1,

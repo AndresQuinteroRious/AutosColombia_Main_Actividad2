@@ -62,7 +62,7 @@
   grid-template-columns: 1.3fr 1fr;
   align-items: center;
   gap: 52px;
-  padding: 84px 0 76px;
+  padding: 36px 0 48px;
   position: relative;
 }
 .rol-badge {
@@ -138,13 +138,16 @@ h1 {
 .illustration {
   position: relative;
   align-self: start;
-  transform: translateY(-8px);
+  justify-self: end;
+  width: 100%;
+  max-width: 420px;
+  transform: translateY(-20px);
   overflow: hidden;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 320px;
+  min-height: 260px;
   border: 1px solid rgba(29, 78, 137, 0.08);
   border-radius: 24px;
   background: linear-gradient(180deg, rgba(237, 245, 255, 0.9), rgba(255, 255, 255, 0.82));
@@ -167,15 +170,15 @@ svg {
   font-size: 10px;
   letter-spacing: 3px;
   color: var(--primary-dark);
-  margin-top: 28px;
+  margin-top: 18px;
 }
-svg {
+.illustration svg {
   width: 100%;
-  max-width: 380px;
-  filter: drop-shadow(0 16px 24px rgba(29, 78, 137, 0.12));
+  max-width: 300px;
+  filter: drop-shadow(0 12px 18px rgba(29, 78, 137, 0.12));
 }
 .illustration-caption {
-  margin-bottom: 28px;
+  margin-bottom: 18px;
   font-size: 12px;
   color: var(--muted);
 }
@@ -399,7 +402,9 @@ h2 {
   .illustration {
     align-self: stretch;
     transform: none;
-    min-height: 260px;
+    justify-self: center;
+    max-width: 360px;
+    min-height: 230px;
   }
   .site-footer {
     flex-wrap: wrap;
