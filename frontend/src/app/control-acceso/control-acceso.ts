@@ -148,6 +148,7 @@ export class ControlAcceso {
     if (
       vehiculoSeleccionado &&
       celdaSeleccionada &&
+      vehiculoSeleccionado.tipo !== celdaSeleccionada.tipo &&
       tipoCeldaParaVehiculo(vehiculoSeleccionado.tipo) !== celdaSeleccionada.tipo
     ) {
       this.errorTipoEntrada.set(
