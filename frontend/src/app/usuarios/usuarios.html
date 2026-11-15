@@ -92,23 +92,21 @@
       </div>
     </section>
   }
-  @if (pendingDelete(); as user) {
+  @if (pendingDeactivation(); as user) {
     <section
       class="panel confirmation"
       role="alertdialog"
-      aria-labelledby="delete-title"
-      aria-describedby="delete-description"
+      aria-labelledby="deactivate-title"
+      aria-describedby="deactivate-description"
     >
-      <h2 id="delete-title">Eliminar usuario {{ user.nombre }}</h2>
-      <p id="delete-description">
-        ¿Quieres eliminar el usuario <strong>{{ user.nombre }}</strong
-        >, documento {{ user.documento }} (id {{ user.id }})? Esta acción no se puede
-        deshacer.
+      <h2 id="deactivate-title">Desactivar usuario {{ user.nombre }}</h2>
+      <p id="deactivate-description">
+        Se cambiará su fecha de vencimiento al día anterior para impedir que inicie sesión.
       </p>
       <div class="actions">
-        <button type="button" (click)="cancel()" [disabled]="busy()">Cancelar eliminación</button
-        ><button type="button" class="danger" (click)="remove()" [disabled]="busy()">
-          {{ saving() ? 'Eliminando…' : 'Confirmar eliminación' }}
+        <button type="button" (click)="cancel()" [disabled]="busy()">Cancelar</button
+        ><button type="button" class="primary" (click)="deactivate()" [disabled]="busy()">
+          {{ saving() ? 'Desactivando…' : 'Confirmar desactivación' }}
         </button>
       </div>
     </section>
@@ -147,7 +145,10 @@
           </thead>
           <tbody>
             @for (user of items(); track user.id) {
-              <tr>
+              <tr
+                [class.expired]="isExpired(user)"
+                [attr.title]="isExpired(user) ? 'Usuario vencido' : null"
+              >
                 <th scope="row">{{ user.nombre }}</th>
                 <td>{{ user.documento }}</td>
                 <td>{{ user.telefono }}</td>
@@ -170,11 +171,11 @@
                   ><button
                     type="button"
                     class="delete-link"
-                    (click)="confirmDelete(user)"
+                    (click)="confirmDeactivation(user)"
                     [disabled]="busy()"
-                    [attr.aria-label]="'Eliminar ' + user.nombre"
+                    [attr.aria-label]="'Desactivar ' + user.nombre"
                   >
-                    Eliminar
+                    Desactivar
                   </button>
                 </td>
               </tr>

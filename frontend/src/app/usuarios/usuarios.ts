@@ -45,13 +45,23 @@ export class Usuarios {
   readonly showForm = signal(false);
   readonly editing = signal<number | null>(null);
   readonly editingUser = signal<Usuario | null>(null);
-  readonly pendingDelete = signal<Usuario | null>(null);
+  readonly pendingDeactivation = signal<Usuario | null>(null);
   readonly pendingPasswordReset = signal<Usuario | null>(null);
   readonly listError = signal('');
   readonly actionError = signal('');
   readonly success = signal('');
   readonly page = computed(() => Math.floor(this.offset() / this.limit) + 1);
   readonly pages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
+
+  isExpired(user: Usuario): boolean {
+    const today = new Date();
+    const todayIso = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0'),
+    ].join('-');
+    return user.fecha_vencimiento < todayIso;
+  }
 
   constructor() {
     this.load();
@@ -88,7 +98,7 @@ export class Usuarios {
     this.editing.set(null);
     this.editingUser.set(null);
     this.showForm.set(true);
-    this.pendingDelete.set(null);
+    this.pendingDeactivation.set(null);
     this.pendingPasswordReset.set(null);
     this.actionError.set('');
     this.success.set('');
@@ -99,7 +109,7 @@ export class Usuarios {
     this.loading.set(true);
     this.actionError.set('');
     this.success.set('');
-    this.pendingDelete.set(null);
+    this.pendingDeactivation.set(null);
     this.pendingPasswordReset.set(null);
     this.api
       .get(user.id)
@@ -122,7 +132,7 @@ export class Usuarios {
   cancel(): void {
     if (this.busy()) return;
     this.showForm.set(false);
-    this.pendingDelete.set(null);
+    this.pendingDeactivation.set(null);
     this.pendingPasswordReset.set(null);
     this.editingUser.set(null);
     this.actionError.set('');
@@ -200,9 +210,9 @@ export class Usuarios {
     this.form.controls[field].markAsTouched();
   }
 
-  confirmDelete(user: Usuario): void {
+  confirmDeactivation(user: Usuario): void {
     if (this.busy()) return;
-    this.pendingDelete.set(user);
+    this.pendingDeactivation.set(user);
     this.showForm.set(false);
     this.actionError.set('');
     this.success.set('');
@@ -213,7 +223,7 @@ export class Usuarios {
     const user = this.editingUser();
     if (!user || this.busy()) return;
     this.pendingPasswordReset.set(user);
-    this.pendingDelete.set(null);
+    this.pendingDeactivation.set(null);
     this.actionError.set('');
     this.success.set('');
   }
@@ -249,38 +259,43 @@ export class Usuarios {
       });
   }
 
-  remove(): void {
-    const user = this.pendingDelete();
+  deactivate(): void {
+    const user = this.pendingDeactivation();
     if (!user || this.busy()) return;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const expirationDate = [
+      yesterday.getFullYear(),
+      String(yesterday.getMonth() + 1).padStart(2, '0'),
+      String(yesterday.getDate()).padStart(2, '0'),
+    ].join('-');
     this.saving.set(true);
     this.actionError.set('');
     this.api
-      .delete(user.id)
+      .update(user.id, { fecha_vencimiento: expirationDate })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
           this.saving.set(false);
-          this.pendingDelete.set(null);
-          this.success.set(`Usuario ${user.nombre} eliminado correctamente.`);
+          this.pendingDeactivation.set(null);
+          this.success.set(`Usuario ${user.nombre} desactivado correctamente.`);
           this.load();
         },
         error: (error) => {
           this.saving.set(false);
-          this.actionError.set(this.errorMessage(error, true));
+          this.actionError.set(this.errorMessage(error));
           if (error.status === 404) {
-            this.pendingDelete.set(null);
+            this.pendingDeactivation.set(null);
             this.load();
           }
         },
       });
   }
 
-  private errorMessage(error: HttpErrorResponse, deleting = false): string {
+  private errorMessage(error: HttpErrorResponse): string {
     if (error.status === 404) return 'El usuario ya no existe. Actualiza el listado.';
     if (error.status === 409)
-      return deleting
-        ? 'No se puede eliminar: el usuario tiene registros relacionados o un conflicto con otros datos.'
-        : 'Ya existe un usuario con ese documento.';
+      return 'Ya existe un usuario con ese documento.';
     if (error.status === 422)
       return 'Revisa los datos: hay campos que no cumplen las validaciones.';
     return 'No se pudo conectar con el servicio. Comprueba la conexión y actualiza el listado antes de reintentar.';

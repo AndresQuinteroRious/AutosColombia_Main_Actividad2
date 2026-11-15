@@ -2,6 +2,7 @@ import base64
 import hashlib
 import hmac
 import secrets
+from datetime import date
 from functools import wraps
 
 from sqlalchemy import func, select
@@ -147,6 +148,8 @@ def autenticar_usuario(
         )
     if not credencial_valida:
         raise UsuarioError(401, "Credenciales inválidas. Verifica el documento y la contraseña o teléfono.")
+    if usuario.fecha_vencimiento < date.today():
+        raise UsuarioError(403, "El usuario está vencido y no puede iniciar sesión.")
     return usuario
 
 
@@ -167,6 +170,8 @@ def obtener_usuario_por_token(session: Session, token: str, permitir_cambio_cont
     usuario = session.get(Usuario, int(usuario_id))
     if usuario is None:
         raise UsuarioError(401, "La sesión del usuario no existe o expiró.")
+    if usuario.fecha_vencimiento < date.today():
+        raise UsuarioError(403, "El usuario está vencido y no puede acceder.")
     if usuario.requiere_cambio_contrasena and not permitir_cambio_contrasena:
         raise UsuarioError(403, "Debes cambiar tu contraseña antes de continuar.")
     return usuario

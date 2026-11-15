@@ -88,6 +88,35 @@ def test_password_is_hashed_and_used_after_first_change():
     assert autenticar_usuario(session, "CC-123", "", "Una clave segura 2026") is user
 
 
+def test_usuario_vencido_no_puede_iniciar_sesion():
+    session = MagicMock()
+    session.query.return_value.filter_by.return_value.first.return_value = Usuario(
+        id=5,
+        nombre="Ana Pérez",
+        documento="CC-123",
+        telefono="3001234567",
+        fecha_vencimiento=date(2000, 1, 1),
+    )
+
+    with pytest.raises(UsuarioError, match="vencido"):
+        autenticar_usuario(session, "CC-123", "3001234567")
+
+
+def test_usuario_vencido_no_puede_usar_su_token():
+    session = MagicMock()
+    session.get.return_value = Usuario(
+        id=5,
+        nombre="Ana Pérez",
+        documento="CC-123",
+        telefono="3001234567",
+        fecha_vencimiento=date(2000, 1, 1),
+    )
+    token = base64.urlsafe_b64encode(b"5:EMPLEADO:CC-123").decode("ascii")
+
+    with pytest.raises(UsuarioError, match="vencido"):
+        obtener_usuario_por_token(session, token)
+
+
 def test_hash_usa_salt_diferente_para_cada_contrasena():
     first_hash = _hash_password("Una clave segura 2026")
     second_hash = _hash_password("Una clave segura 2026")

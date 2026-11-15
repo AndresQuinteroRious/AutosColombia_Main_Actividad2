@@ -194,6 +194,13 @@ td {
   overflow-wrap: anywhere;
   max-width: 240px;
 }
+tr.expired {
+  color: #7b8490;
+}
+tr.expired .rol-tag {
+  color: #7b8490;
+  background: #eef0f2;
+}
 thead th {
   color: var(--primary);
   font-weight: 500;
