@@ -1,5 +1,68 @@
 # Backend de Autos Colombia
 
+## Reparación del esquema de usuarios y consultas de Inicio
+
+La revisión `reparar_columnas_usuario`, posterior a `novedad_estancia`, repara
+bases donde Alembic registró el cambio de turnos pero faltan las columnas
+`usuario.turno`, `usuario.horas_semana` y `usuario.ausentismo_horas`.
+Agrega únicamente columnas ausentes y restricciones ausentes, preserva valores
+existentes y usa los valores iniciales de la migración original: `MAÑANA`, `42`
+y `0`. Su downgrade conserva columnas y datos porque pertenecen a una revisión
+anterior. No elimina ni recrea la tabla.
+
+Revisar desde `backend` con
+`.\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade novedad_estancia:reparar_columnas_usuario --sql`.
+Tras autorizar su aplicación, ejecutar
+`.\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head`.
+
+La consulta de estancias reutiliza la transacción iniciada por la autenticación
+mediante un savepoint. Para comprobar ambos listados y el esquema real sin
+modificar datos:
+
+```powershell
+$env:RUN_POSTGRES_TESTS = '1'
+try {
+    .\.venv\Scripts\python.exe -m pytest -q tests/test_inicio_postgres.py
+} finally {
+    Remove-Item Env:RUN_POSTGRES_TESTS -ErrorAction SilentlyContinue
+}
+```
+
+## Novedades vinculadas a estancias
+
+La migración `novedad_estancia` añade `novedad.id_estancia`, con llave foránea
+a `estancia.id`, índice y borrado restringido. Las novedades anteriores conservan
+su relación vacía; no se les asigna una estancia por aproximación.
+
+`POST /novedades/vehiculo` requiere un vehículo con estancia abierta y guarda su
+id automáticamente. `POST /novedades` requiere `id_estancia` y `descripcion`;
+rechaza estancias inexistentes (404) o cerradas (409). El registro bloquea la
+estancia durante la transacción para coordinarse con el cierre. La relación no
+se modifica al editar la descripción.
+
+`GET /novedades/historial` incluye `id_estancia`, `entrada`, `salida` y `celda`;
+la consulta de inicio muestra estos campos junto con la novedad, incluso cuando
+la estancia se cierra posteriormente. Las novedades anteriores muestran
+«Sin estancia asociada».
+El selector de placas de inicio consulta `/estancias/abiertas` y registra la
+novedad con el `id_estancia` seleccionado mediante `POST /novedades`. El backend
+comprueba nuevamente que esa estancia siga abierta al guardar.
+
+Desde `backend`, revisar sin conectar con
+`.\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head --sql`.
+Aplicar migraciones a PostgreSQL requiere autorización.
+
+El historial `GET /estancias/historial` admite el parámetro opcional `usuario`:
+busca por nombre completo o parcial del operador que registró la entrada o la
+salida, sin distinguir mayúsculas. Se combina con fecha, placa y estado, y se
+aplica también al total paginado. La pantalla de inicio envía este parámetro
+mediante la ruta relativa existente, sin cambios de base de datos.
+El desplegable carga los usuarios de la tabla `usuario` mediante
+`GET /usuarios/opciones-historial`, disponible con sesión iniciada y limitado a
+id, nombre y documento. Envía `usuario_id` al historial y vincula el documento
+con el operador de entrada o salida para distinguir usuarios con el mismo nombre.
+La opción «Todos los usuarios» elimina el filtro. No se modifica la base de datos.
+
 ## CRUD de operadores
 
 Disponible únicamente en la API bajo `/operadores`, con POST, GET paginado,

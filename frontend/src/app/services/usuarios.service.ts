@@ -1,7 +1,7 @@
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { timeout } from 'rxjs';
-import { Usuario, UsuarioActualizar, UsuarioCrear, UsuariosPagina } from '../models/usuario';
+import { Usuario, UsuarioActualizar, UsuarioCrear, UsuariosPagina, UsuarioOpcionHistorial } from '../models/usuario';
 
 import { API_BASE_URL } from './api.service';
 
@@ -25,6 +25,11 @@ export class UsuariosService {
         headers: this.getAuthHeaders(),
       })
       .pipe(timeout(15000));
+  }
+  opcionesHistorial() {
+    return this.http.get<UsuarioOpcionHistorial[]>(`${this.users}/opciones-historial`, {
+      headers: this.getAuthHeaders(),
+    }).pipe(timeout(15000));
   }
   get(id: number) {
     return this.http.get<Usuario>(`${this.users}/${id}`, {

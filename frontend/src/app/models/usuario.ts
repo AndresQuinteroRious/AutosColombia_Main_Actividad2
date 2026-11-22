@@ -16,3 +16,9 @@ export interface UsuariosPagina {
   offset: number;
   limit: number;
 }
+
+export interface UsuarioOpcionHistorial {
+  id: number;
+  nombre: string;
+  documento: string;
+}

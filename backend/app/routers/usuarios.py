@@ -13,6 +13,7 @@ from app.schemas.usuario import (
     UsuarioLoginRespuesta,
     UsuarioRespuesta,
     UsuariosPagina,
+    UsuarioOpcionHistorial,
 )
 from app.services import usuario as service
 
@@ -85,6 +86,15 @@ def list_all(
 @router.get("/cobertura-semanal")
 def cobertura_semanal(session: DatabaseSession):
     return service.get_cobertura_semanal(session)
+
+
+@router.get("/opciones-historial", response_model=list[UsuarioOpcionHistorial])
+def opciones_historial(
+    session: DatabaseSession,
+    current_user: Usuario = Depends(get_current_user),
+) -> list[dict]:
+    del current_user
+    return service.opciones_historial(session)
 
 
 @router.get("/{id}", response_model=UsuarioRespuesta)

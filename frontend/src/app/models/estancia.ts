@@ -59,4 +59,6 @@ export interface EstanciasHistorialFiltros {
   fecha_hasta?: string;
   placa?: string;
   estado?: 'ABIERTAS' | 'CERRADAS';
+  usuario?: string;
+  usuario_id?: number;
 }

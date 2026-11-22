@@ -1,8 +1,11 @@
 export interface NovedadCrear {
   descripcion: string;
+  id_estancia: number;
 }
-export type NovedadActualizar = Partial<NovedadCrear>;
-export interface Novedad extends NovedadCrear {
+export type NovedadActualizar = Partial<Pick<NovedadCrear, 'descripcion'>>;
+export interface Novedad {
+  descripcion: string;
+  id_estancia: number | null;
   id: number;
   fecha: string;
 }
@@ -29,6 +32,10 @@ export interface NovedadHistorialItem {
   placa: string | null;
   descripcion: string;
   fecha: string;
+  id_estancia?: number | null;
+  entrada?: string | null;
+  salida?: string | null;
+  celda?: string | null;
 }
 
 export interface NovedadHistorialPagina {

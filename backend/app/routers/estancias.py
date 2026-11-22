@@ -77,8 +77,12 @@ def historial(
     offset: Annotated[int, Query(ge=0, le=9223372036854775807)] = 0,
     limit: Annotated[int, Query(ge=1, le=100)] = 10,
     estado: Annotated[Literal["ABIERTAS", "CERRADAS"] | None, Query()] = None,
+    usuario: Annotated[str | None, Query(max_length=200)] = None,
+    usuario_id: Annotated[int | None, Query(ge=1, le=9223372036854775807)] = None,
 ) -> EstanciasHistorialPagina:
-    return ServicioEstancia(session).historial(fecha_desde, fecha_hasta, placa, offset, limit, estado)
+    return ServicioEstancia(session).historial(
+        fecha_desde, fecha_hasta, placa, offset, limit, estado, usuario, usuario_id
+    )
 
 
 @router.post("/salida", response_model=EstanciaRespuesta)

@@ -48,7 +48,7 @@
 <section class="history-panel" aria-labelledby="history-title">
   <div class="section-heading">
     <h2 id="history-title">Historial de estancias</h2>
-    <p>Al entrar se muestran las estancias abiertas. Filtra por fecha o placa para consultar todas.</p>
+    <p>Al entrar se muestran las estancias abiertas. Filtra por fecha, placa o usuario para consultar todas.</p>
   </div>
 
   <form class="history-filters" [formGroup]="historialForm" (ngSubmit)="buscarHistorial()">
@@ -64,6 +64,15 @@
       <label for="history-plate">Placa</label>
       <input id="history-plate" type="search" formControlName="placa" placeholder="Ej. ABC123" />
     </div>
+    <div class="field">
+      <label for="history-user">Usuario que registró</label>
+      <select id="history-user" formControlName="usuario">
+        <option value="">{{ loadingUsuariosHistorial() ? 'Cargando usuarios…' : 'Todos los usuarios' }}</option>
+        @for (usuario of usuariosHistorial(); track usuario.id) {
+          <option [value]="usuario.id">{{ usuario.nombre }}</option>
+        }
+      </select>
+    </div>
     <div class="history-actions">
       <button class="primary" type="submit" [disabled]="loadingHistorial()">
         {{ loadingHistorial() ? 'Consultando…' : 'Consultar historial' }}
@@ -76,6 +85,12 @@
 
   @if (errorFiltros()) {
     <p class="history-message error" role="alert">{{ errorFiltros() }}</p>
+  }
+  @if (errorUsuariosHistorial()) {
+    <p class="history-message error" role="alert">
+      {{ errorUsuariosHistorial() }}
+      <button type="button" (click)="cargarUsuariosHistorial()">Reintentar</button>
+    </p>
   }
   @if (errorHistorial()) {
     <p class="history-message error" role="alert">{{ errorHistorial() }}</p>
@@ -151,29 +166,29 @@
 <section class="history-panel novelty-panel" aria-labelledby="novelty-entry-title">
   <div class="section-heading">
     <h2 id="novelty-entry-title">Registrar novedad de vehículo</h2>
-    <p>Relaciona la novedad con una placa. La fecha y hora se registran automáticamente.</p>
+    <p>El vehículo debe tener una estancia abierta. La novedad queda asociada a esa estancia y su fecha se registra automáticamente.</p>
   </div>
 
   @if (!isAuthenticated) {
     <p class="history-message">Inicia sesión para registrar una novedad.</p>
   } @else if (loadingVehiculosNovedad()) {
-    <p class="history-message" role="status">Cargando vehículos registrados…</p>
+    <p class="history-message" role="status">Cargando vehículos con estancia abierta…</p>
   } @else if (errorVehiculosNovedad()) {
     <p class="history-message error" role="alert">{{ errorVehiculosNovedad() }}</p>
   } @else if (!vehiculosNovedad().length) {
-    <p class="history-message">No hay vehículos registrados para asociar.</p>
+    <p class="history-message">No hay vehículos con estancia abierta para registrar una novedad.</p>
   } @else {
     <form class="history-filters novelty-form" [formGroup]="novedadForm" (ngSubmit)="registrarNovedad()">
       <div class="field">
         <label for="novelty-plate">Placa</label>
         <select id="novelty-plate" formControlName="placa">
-          <option value="">Selecciona un vehículo</option>
+          <option value="">Selecciona un vehículo con estancia abierta</option>
           @for (vehicle of vehiculosNovedad(); track vehicle.id) {
             <option [value]="vehicle.placa">{{ vehicle.placa }} · {{ vehicle.marca }} {{ vehicle.modelo }}</option>
           }
         </select>
         @if (novedadForm.controls.placa.touched && novedadForm.controls.placa.invalid) {
-          <span class="field-error">Selecciona la placa de un vehículo registrado.</span>
+          <span class="field-error">Selecciona la placa de un vehículo con estancia abierta.</span>
         }
       </div>
       <div class="field novelty-description">
@@ -240,13 +255,17 @@
         <table class="history-table">
           <caption class="sr-only">Historial de novedades de vehículos</caption>
           <thead>
-            <tr><th scope="col">Fecha</th><th scope="col">Placa</th><th scope="col">Descripción</th></tr>
+            <tr><th scope="col">Fecha</th><th scope="col">Placa</th><th scope="col">Estancia</th><th scope="col">Celda</th><th scope="col">Entrada</th><th scope="col">Salida</th><th scope="col">Descripción</th></tr>
           </thead>
           <tbody>
             @for (news of novedades(); track news.id) {
               <tr>
                 <td>{{ fecha(news.fecha) }}</td>
                 <td>{{ news.placa || 'Sin vehículo asociado' }}</td>
+                <td>{{ news.id_estancia ?? 'Sin estancia asociada' }}</td>
+                <td>{{ news.celda || '—' }}</td>
+                <td>{{ fecha(news.entrada ?? null) }}</td>
+                <td>{{ fecha(news.salida ?? null) }}</td>
                 <td class="novelty-description-cell">{{ news.descripcion }}</td>
               </tr>
             }

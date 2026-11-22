@@ -239,6 +239,11 @@ class Novedad(Base):
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
+    id_estancia: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("estancia.id", name="fk_novedad_estancia", ondelete="RESTRICT"),
+        nullable=True, index=True,
+    )
+    estancia: Mapped[Estancia | None] = relationship()
     vehiculo_id: Mapped[int | None] = mapped_column(
         BigInteger, ForeignKey("vehiculo.id", name="fk_novedad_vehiculo", ondelete="SET NULL"), nullable=True
     )

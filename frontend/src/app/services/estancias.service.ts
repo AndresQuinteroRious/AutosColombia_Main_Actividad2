@@ -76,6 +76,8 @@ export class EstanciasService {
           ...(filtros.fecha_hasta ? { fecha_hasta: filtros.fecha_hasta } : {}),
           ...(filtros.placa ? { placa: filtros.placa } : {}),
           ...(filtros.estado ? { estado: filtros.estado } : {}),
+          ...(filtros.usuario ? { usuario: filtros.usuario } : {}),
+          ...(filtros.usuario_id ? { usuario_id: filtros.usuario_id } : {}),
         },
         headers: this.getAuthHeaders(),
       })

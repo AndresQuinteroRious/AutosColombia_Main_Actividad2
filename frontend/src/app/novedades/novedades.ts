@@ -1,7 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { FormBuilder, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { NovedadesService } from '../services/novedades.service';
 import { Novedad, NovedadCrear } from '../models/novedad';
 import { ErrorApi } from '../models/vehiculo';
@@ -26,6 +26,7 @@ export class Novedades {
   ];
   readonly form = this.fb.group({
     descripcion: this.fb.nonNullable.control('', nonBlank),
+    id_estancia: this.fb.control<number | null>(null, [Validators.required, Validators.min(1)]),
   });
   readonly items = signal<Novedad[]>([]);
   readonly total = signal(0);
@@ -75,6 +76,7 @@ export class Novedades {
   newNews(): void {
     if (this.busy()) return;
     this.form.reset();
+    this.form.controls.id_estancia.enable();
     this.editing.set(null);
     this.showForm.set(true);
     this.pendingDelete.set(null);
@@ -96,6 +98,7 @@ export class Novedades {
           this.loading.set(false);
           this.editing.set(data.id);
           this.form.reset(data);
+          this.form.controls.id_estancia.disable();
           this.showForm.set(true);
         },
         error: (error) => {
@@ -130,12 +133,13 @@ export class Novedades {
     const value = this.form.getRawValue();
     const payload: NovedadCrear = {
       descripcion: value.descripcion.trim(),
+      id_estancia: value.id_estancia!,
     };
     this.saving.set(true);
     this.actionError.set('');
     this.success.set('');
     const id = this.editing();
-    const request = id === null ? this.api.create(payload) : this.api.update(id, payload);
+    const request = id === null ? this.api.create(payload) : this.api.update(id, { descripcion: payload.descripcion });
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (news) => {
         this.saving.set(false);

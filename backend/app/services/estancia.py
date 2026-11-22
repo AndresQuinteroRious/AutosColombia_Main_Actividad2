@@ -29,7 +29,9 @@ def transaccion(operation):
     @wraps(operation)
     def wrapped(self, *args, **kwargs):
         try:
-            with self.session.begin():
+            # La autenticación puede haber iniciado la transacción en esta misma sesión.
+            transaction = self.session.begin_nested if self.session.in_transaction() else self.session.begin
+            with transaction():
                 return operation(self, *args, **kwargs)
         except IntegrityError as error:
             self.session.rollback()
@@ -167,6 +169,8 @@ class ServicioEstancia:
         offset: int,
         limit: int,
         estado: str | None = None,
+        usuario: str | None = None,
+        usuario_id: int | None = None,
     ) -> EstanciasHistorialPagina:
         if fecha_desde and fecha_hasta and fecha_desde > fecha_hasta:
             raise EstanciaError(422, "La fecha desde no puede ser posterior a la fecha hasta.")
@@ -187,6 +191,21 @@ class ServicioEstancia:
             condiciones.append(Estancia.salida.is_(None))
         elif estado == "CERRADAS":
             condiciones.append(Estancia.salida.is_not(None))
+
+        if usuario and usuario.strip():
+            nombre = Operador.nombre.icontains(usuario.strip(), autoescape=True)
+            condiciones.append(
+                Estancia.operador_entrada.has(nombre) | Estancia.operador_salida.has(nombre)
+            )
+
+        if usuario_id is not None:
+            documento_usuario = select(func.upper(func.trim(Usuario.documento))).where(
+                Usuario.id == usuario_id
+            ).scalar_subquery()
+            documento = func.upper(func.trim(Operador.documento)) == documento_usuario
+            condiciones.append(
+                Estancia.operador_entrada.has(documento) | Estancia.operador_salida.has(documento)
+            )
 
         total = self.session.scalar(
             select(func.count())

@@ -236,6 +236,15 @@ def create_user(session: Session, data: UsuarioCrear) -> Usuario:
 
 
 @database_operation
+def opciones_historial(session: Session) -> list[dict]:
+    """Datos mínimos para seleccionar al usuario que registró una estancia."""
+    return [
+        {"id": user.id, "nombre": user.nombre, "documento": user.documento}
+        for user in session.query(Usuario).order_by(Usuario.nombre, Usuario.id).all()
+    ]
+
+
+@database_operation
 def list_users(session: Session, offset: int, limit: int) -> dict:
     total = session.scalar(select(func.count()).select_from(Usuario))
     items = list(session.scalars(select(Usuario).order_by(Usuario.id).offset(offset).limit(limit)))

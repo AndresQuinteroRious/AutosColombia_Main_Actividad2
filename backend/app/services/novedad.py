@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from functools import wraps
 from zoneinfo import ZoneInfo
 
@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from app.models import Novedad, Vehiculo
+from app.models import Celda, Estancia, Novedad, Vehiculo
 from app.schemas.novedad import (
     NovedadActualizar,
     NovedadCrear,
@@ -42,7 +42,7 @@ def database_operation(operation):
             session.rollback()
             raise NovedadError(
                 503,
-                "No se pudo completar la operación de novedades. Verifica que PostgreSQL esté disponible y que la migración novedad_vehiculo esté aplicada.",
+                "No se pudo completar la operación de novedades. Verifica que PostgreSQL esté disponible y que la migración novedad_estancia esté aplicada.",
             ) from None
     return wrapped
 
@@ -56,7 +56,14 @@ def find_novedad(session: Session, novedad_id: int) -> Novedad:
 
 @database_operation
 def create_novedad(session: Session, data: NovedadCrear) -> Novedad:
-    novedad = Novedad(**data.model_dump())
+    estancia = session.scalar(select(Estancia).where(
+        Estancia.id == data.id_estancia,
+    ).with_for_update())
+    if estancia is None:
+        raise NovedadError(404, "Estancia no encontrada.")
+    if estancia.salida is not None:
+        raise NovedadError(409, "La estancia ya está cerrada; no se puede registrar la novedad.")
+    novedad = Novedad(**data.model_dump(), vehiculo_id=estancia.vehiculo_id)
     session.add(novedad)
     session.commit()
     session.refresh(novedad)
@@ -68,7 +75,14 @@ def create_vehicle_novedad(session: Session, data: NovedadVehiculoCrear) -> Nove
     vehiculo = session.get(Vehiculo, data.vehiculo_id)
     if vehiculo is None:
         raise NovedadError(404, "Vehículo no encontrado.")
+    estancia = session.scalar(select(Estancia).where(
+        Estancia.vehiculo_id == vehiculo.id,
+        Estancia.salida.is_(None),
+    ).with_for_update())
+    if estancia is None:
+        raise NovedadError(409, "El vehículo no tiene una estancia abierta; registra su entrada antes de la novedad.")
     novedad = Novedad(
+        id_estancia=estancia.id,
         vehiculo_id=vehiculo.id,
         descripcion=data.descripcion,
     )
@@ -80,6 +94,10 @@ def create_vehicle_novedad(session: Session, data: NovedadVehiculoCrear) -> Nove
         placa=vehiculo.placa,
         descripcion=novedad.descripcion,
         fecha=novedad.fecha,
+        id_estancia=estancia.id,
+        entrada=estancia.entrada,
+        salida=estancia.salida,
+        celda=estancia.celda.codigo,
     )
 
 
@@ -127,8 +145,14 @@ def list_vehicle_history(
             Vehiculo.placa.label("placa"),
             Novedad.descripcion,
             Novedad.fecha,
+            Novedad.id_estancia,
+            Estancia.entrada,
+            Estancia.salida,
+            Celda.codigo.label("celda"),
         )
         .outerjoin(Vehiculo, Vehiculo.id == Novedad.vehiculo_id)
+        .outerjoin(Estancia, Estancia.id == Novedad.id_estancia)
+        .outerjoin(Celda, Celda.id == Estancia.celda_id)
         .where(*condiciones)
         .order_by(Novedad.fecha.desc(), Novedad.id.desc())
         .offset(offset)

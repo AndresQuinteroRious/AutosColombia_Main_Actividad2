@@ -151,3 +151,9 @@ class UsuariosPagina(BaseModel):
     total: int
     offset: int
     limit: int
+
+
+class UsuarioOpcionHistorial(BaseModel):
+    id: int
+    nombre: str
+    documento: str

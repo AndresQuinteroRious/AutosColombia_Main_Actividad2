@@ -5,6 +5,7 @@ import { FormBuilder, ReactiveFormsModule, ValidatorFn } from '@angular/forms';
 import {
   EstanciasHistorialFiltros,
   EstanciaHistorialItem,
+  EstanciaAbiertaDetalle,
 } from '../models/estancia';
 import { ApiService } from '../services/api.service';
 import { EstanciasService } from '../services/estancias.service';
@@ -12,10 +13,11 @@ import { NovedadesService } from '../services/novedades.service';
 import {
   NovedadHistorialFiltros,
   NovedadHistorialItem,
-  NovedadVehiculoCrear,
+  NovedadCrear,
 } from '../models/novedad';
-import { Vehiculo } from '../models/vehiculo';
 import { RolBadge } from '../shared/rol-badge/rol-badge';
+import { UsuariosService } from '../services/usuarios.service';
+import { UsuarioOpcionHistorial } from '../models/usuario';
 
 const nonBlank: ValidatorFn = (control) =>
   typeof control.value === 'string' && control.value.trim() ? null : { required: true };
@@ -30,12 +32,14 @@ export class Home {
   private readonly api = inject(ApiService);
   private readonly estanciasApi = inject(EstanciasService);
   private readonly novedadesApi = inject(NovedadesService);
+  private readonly usuariosApi = inject(UsuariosService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
   private historialRequest = 0;
   private historialNovedadesRequest = 0;
 
   protected readonly historialForm = this.fb.nonNullable.group({
+    usuario: '',
     fecha_desde: '',
     fecha_hasta: '',
     placa: '',
@@ -50,11 +54,14 @@ export class Home {
   protected readonly consultado = signal(false);
   protected readonly errorHistorial = signal('');
   protected readonly errorFiltros = signal('');
+  protected readonly usuariosHistorial = signal<UsuarioOpcionHistorial[]>([]);
+  protected readonly loadingUsuariosHistorial = signal(false);
+  protected readonly errorUsuariosHistorial = signal('');
   protected readonly pagina = computed(() => Math.floor(this.offset() / this.limit) + 1);
   protected readonly paginas = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
   protected readonly isAuthenticated = this.api.isLoggedIn();
   protected readonly isAdmin = this.api.getRol() === 'ADMINISTRADOR';
-  protected readonly vehiculosNovedad = signal<Vehiculo[]>([]);
+  protected readonly vehiculosNovedad = signal<EstanciaAbiertaDetalle[]>([]);
   protected readonly loadingVehiculosNovedad = signal(false);
   protected readonly errorVehiculosNovedad = signal('');
   protected readonly novedadForm = this.fb.nonNullable.group({
@@ -90,9 +97,10 @@ export class Home {
     this.cargarHistorial(0);
 
     if (this.isAuthenticated) {
+      this.cargarUsuariosHistorial();
       this.loadingVehiculosNovedad.set(true);
       this.estanciasApi
-        .vehiculos()
+        .abiertas()
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (vehicles) => {
@@ -100,12 +108,30 @@ export class Home {
             this.loadingVehiculosNovedad.set(false);
           },
           error: () => {
-            this.errorVehiculosNovedad.set('No se pudieron cargar los vehículos registrados.');
+            this.errorVehiculosNovedad.set('No se pudieron cargar las estancias abiertas.');
             this.loadingVehiculosNovedad.set(false);
           },
         });
     }
     if (this.isAdmin) this.buscarNovedades();
+  }
+
+  cargarUsuariosHistorial(): void {
+    if (!this.isAuthenticated || this.loadingUsuariosHistorial()) return;
+    this.loadingUsuariosHistorial.set(true);
+    this.errorUsuariosHistorial.set('');
+    this.usuariosApi.opcionesHistorial()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (usuarios) => {
+          this.usuariosHistorial.set(usuarios);
+          this.loadingUsuariosHistorial.set(false);
+        },
+        error: () => {
+          this.errorUsuariosHistorial.set('No se pudo cargar el listado de usuarios.');
+          this.loadingUsuariosHistorial.set(false);
+        },
+      });
   }
 
   registrarNovedad(): void {
@@ -116,23 +142,23 @@ export class Home {
     const form = this.novedadForm.getRawValue();
     const vehicle = this.vehiculosNovedad().find((item) => item.placa === form.placa);
     if (!vehicle) {
-      this.errorNovedad.set('Selecciona un vehículo registrado.');
+      this.errorNovedad.set('Selecciona un vehículo con estancia abierta.');
       return;
     }
-    const data: NovedadVehiculoCrear = {
-      vehiculo_id: vehicle.id,
+    const data: NovedadCrear = {
+      id_estancia: vehicle.id,
       descripcion: form.descripcion.trim(),
     };
     this.savingNovedad.set(true);
     this.novedadesApi
-      .createForVehicle(data)
+      .create(data)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (record) => {
           this.savingNovedad.set(false);
           this.novedadForm.reset();
           this.successNovedad.set(
-            `Novedad #${record.id} registrada para ${record.placa ?? form.placa} el ${this.fecha(record.fecha)}.`,
+            `Novedad #${record.id} registrada para ${form.placa} en la estancia #${record.id_estancia} el ${this.fecha(record.fecha)}.`,
           );
           if (this.isAdmin) {
             this.historialNovedadForm.reset();
@@ -224,6 +250,7 @@ export class Home {
       fecha_desde: value.fecha_desde || undefined,
       fecha_hasta: value.fecha_hasta || undefined,
       placa: value.placa.trim().toUpperCase() || undefined,
+      usuario_id: value.usuario ? Number(value.usuario) : undefined,
     });
     this.mostrandoAbiertasPorDefecto.set(false);
     this.consultado.set(true);
