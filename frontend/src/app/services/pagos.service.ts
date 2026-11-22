@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { timeout } from 'rxjs';
-import { Pago, PagoActualizar, PagoCrear, PagosPagina } from '../models/pago';
+import { Pago, PagoActualizar, PagoCrear, PagosPagina, PlacaPago } from '../models/pago';
 
 import { API_BASE_URL } from './api.service';
 
@@ -10,6 +10,10 @@ export class PagosService {
   private readonly http = inject(HttpClient);
   private readonly base = inject(API_BASE_URL);
   private readonly payments = `${this.base}/pagos`;
+
+  listPlates() {
+    return this.http.get<PlacaPago[]>(`${this.payments}/placas`).pipe(timeout(15000));
+  }
 
   list(offset: number, limit: number) {
     return this.http

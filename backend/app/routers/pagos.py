@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Path, Query, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_session
-from app.schemas.pago import PagoActualizar, PagoCrear, PagoRespuesta, PagosPagina
+from app.schemas.pago import PagoActualizar, PagoCrear, PagoRespuesta, PagosPagina, PlacaPago
 from app.services import pago as service
 
 router = APIRouter(prefix="/pagos", tags=["Pagos"])
@@ -24,6 +24,11 @@ def list_all(
     limit: Annotated[int, Query(ge=1, le=100)] = 20,
 ):
     return service.list_pagos(session, offset, limit)
+
+
+@router.get("/placas", response_model=list[PlacaPago])
+def list_plates(session: DatabaseSession) -> list[PlacaPago]:
+    return service.list_plates(session)
 
 
 @router.get("/{id}", response_model=PagoRespuesta)

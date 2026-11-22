@@ -1,5 +1,18 @@
 # Autos Colombia
 
+## Pantalla Pagos
+
+En el menú de administración, abre **Pagos → Nuevo pago**. Selecciona una placa
+registrada en la lista ordenada alfabéticamente, elige **Moto ($125.000 COP)** o
+**Automóvil ($250.000 COP)** e indica el periodo del pago. El listado muestra la
+placa asociada a cada registro.
+
+La pantalla usa las rutas relativas `GET /pagos/placas` y `POST /pagos` mediante
+el proxy de desarrollo. Antes de usarla, la base debe tener aplicada la revisión
+Alembic `pago_vehiculo`. Para revisar el SQL sin modificar la base, ejecuta
+`.\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head --sql` desde
+`backend`.
+
 ## Pantalla Control de acceso
 
 Disponible en **Control de acceso** en la navegación y en

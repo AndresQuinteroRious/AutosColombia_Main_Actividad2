@@ -268,6 +268,15 @@ class Pago(Base):
     valor: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     fecha: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     periodo: Mapped[str] = mapped_column(Text, nullable=False)
+    vehiculo_id: Mapped[int | None] = mapped_column(
+        BigInteger, ForeignKey("vehiculo.id", name="fk_pago_vehiculo", ondelete="RESTRICT"),
+        nullable=True, index=True,
+    )
+    vehiculo: Mapped[Vehiculo | None] = relationship(lazy="joined")
+
+    @property
+    def placa(self) -> str | None:
+        return self.vehiculo.placa if self.vehiculo else None
 
     @validates("periodo")
     def validate_text(self, key: str, value: str) -> str:

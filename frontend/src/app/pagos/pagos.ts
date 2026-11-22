@@ -3,7 +3,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
 import { PagosService } from '../services/pagos.service';
-import { Pago, PagoCrear } from '../models/pago';
+import { Pago, PagoCrear, PlacaPago } from '../models/pago';
 import { ErrorApi } from '../models/vehiculo';
 import { RolBadge } from '../shared/rol-badge/rol-badge';
 
@@ -25,14 +25,19 @@ export class Pagos {
   private readonly api = inject(PagosService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
-  readonly fields = [
-    { key: 'valor' as const, label: 'Valor', type: 'number' },
-    { key: 'periodo' as const, label: 'Periodo' },
+  readonly tariffs = [
+    { value: 125000, label: 'Moto — $125.000 COP' },
+    { value: 250000, label: 'Automóvil — $250.000 COP' },
   ];
   readonly form = this.fb.group({
     valor: this.fb.control<number | null>(null, [Validators.required, positiveValue]),
     periodo: this.fb.nonNullable.control('', nonBlank),
+    vehiculo_id: this.fb.control<number | null>(null),
   });
+  readonly plates = signal<PlacaPago[]>([]);
+  readonly loadingPlates = signal(false);
+  readonly platesError = signal('');
+  readonly legacyPayment = signal(false);
   readonly items = signal<Pago[]>([]);
   readonly total = signal(0);
   readonly offset = signal(0);
@@ -81,11 +86,32 @@ export class Pagos {
   newPayment(): void {
     if (this.busy()) return;
     this.form.reset();
+    this.legacyPayment.set(false);
+    this.form.controls.vehiculo_id.setValidators(Validators.required);
+    this.form.controls.vehiculo_id.updateValueAndValidity();
     this.editing.set(null);
     this.showForm.set(true);
     this.pendingDelete.set(null);
     this.actionError.set('');
     this.success.set('');
+    this.loadPlates();
+  }
+
+  loadPlates(): void {
+    if (this.loadingPlates()) return;
+    this.plates.set([]);
+    this.platesError.set('');
+    this.loadingPlates.set(true);
+    this.api.listPlates().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (plates) => {
+        this.plates.set(plates);
+        this.loadingPlates.set(false);
+      },
+      error: () => {
+        this.platesError.set('No se pudo cargar la lista de placas.');
+        this.loadingPlates.set(false);
+      },
+    });
   }
 
   edit(payment: Pago): void {
@@ -101,8 +127,13 @@ export class Pagos {
         next: (data) => {
           this.loading.set(false);
           this.editing.set(data.id);
-          this.form.reset(data);
+          this.legacyPayment.set(data.vehiculo_id === null);
+          this.form.controls.vehiculo_id.setValidators(
+            this.legacyPayment() ? null : Validators.required,
+          );
+          this.form.reset({ ...data, valor: Number(data.valor) });
           this.showForm.set(true);
+          if (!this.legacyPayment()) this.loadPlates();
         },
         error: (error) => {
           this.loading.set(false);
@@ -128,24 +159,23 @@ export class Pagos {
   }
 
   save(): void {
-    if (this.busy()) return;
+    if (this.busy() || (!this.legacyPayment() && !this.plates().length)) return;
     this.form.markAllAsTouched();
-    if (this.form.invalid) {
+    const { valor, periodo, vehiculo_id } = this.form.getRawValue();
+    const id = this.editing();
+    if (this.form.invalid || valor === null || (id === null && vehiculo_id === null)) {
       this.actionError.set('Revisa los campos señalados antes de guardar el pago.');
       return;
     }
-    const value = this.form.getRawValue();
-    const payload: PagoCrear = {
-      valor: Number(value.valor),
-      periodo: value.periodo.trim(),
-    };
+    const payload = { valor, periodo: periodo.trim() };
     this.saving.set(true);
     this.actionError.set('');
     this.success.set('');
-    const id = this.editing();
-    const request = id === null ? this.api.create(payload) : this.api.update(id, payload);
+    const request = id === null
+      ? this.api.create({ ...payload, vehiculo_id: vehiculo_id! })
+      : this.api.update(id, vehiculo_id === null ? payload : { ...payload, vehiculo_id });
     request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: (payment) => {
+      next: () => {
         this.saving.set(false);
         this.showForm.set(false);
         this.success.set(
@@ -218,7 +248,9 @@ export class Pagos {
         ? 'No se puede eliminar: el pago tiene registros relacionados o un conflicto con otros datos.'
         : 'La operación entra en conflicto con los datos existentes.';
     if (error.status === 422)
-      return 'Revisa los datos: hay campos que no cumplen las validaciones.';
+      return typeof error.error?.detail === 'string'
+        ? error.error.detail
+        : 'Revisa los datos del pago.';
     return 'No se pudo conectar con el servicio. Comprueba la conexión y actualiza el listado antes de reintentar.';
   }
 }

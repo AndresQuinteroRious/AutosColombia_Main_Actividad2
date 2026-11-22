@@ -19,31 +19,57 @@
   @if (showForm()) {
     <section class="panel" aria-labelledby="form-title">
       <h2 id="form-title">{{ editing() === null ? 'Registrar pago' : 'Editar pago' }}</h2>
-      <p class="hint">
-        Todos los campos son obligatorios. El valor debe ser mayor que 0.
-      </p>
       <form [formGroup]="form" (ngSubmit)="save()" novalidate>
         <fieldset [disabled]="busy()">
           <legend class="sr-only">Datos del pago</legend>
           <div class="form-grid">
-            @for (field of fields; track field.key) {
+            @if (!legacyPayment()) {
               <div class="field">
-                <label [for]="field.key">{{ field.label }}</label
-                ><input
-                  [type]="field.type || 'text'"
-                  [id]="field.key"
-                  [formControlName]="field.key"
-                  required
-                  [attr.aria-invalid]="!!fieldError(field.key)"
-                  [attr.aria-describedby]="field.key + '-error'"
-                /><span class="field-error" [id]="field.key + '-error'">{{
-                  fieldError(field.key)
-                }}</span>
+                <label for="vehiculo_id">Placa</label>
+                <select id="vehiculo_id" formControlName="vehiculo_id" required
+                  [attr.aria-invalid]="!!fieldError('vehiculo_id')"
+                  aria-describedby="placa-error">
+                  <option [ngValue]="null">Selecciona una placa</option>
+                  @for (vehicle of plates(); track vehicle.id) {
+                    <option [ngValue]="vehicle.id">{{ vehicle.placa }}</option>
+                  }
+                </select>
+                <span class="field-error" id="placa-error">{{ fieldError('vehiculo_id') }}</span>
+                @if (loadingPlates()) {
+                  <span role="status">Cargando placas…</span>
+                } @else if (platesError()) {
+                  <span role="alert">{{ platesError() }}</span>
+                  <button type="button" (click)="loadPlates()">Reintentar</button>
+                } @else if (!plates().length) {
+                  <span role="status">Registra un vehículo para poder seleccionar su placa.</span>
+                }
               </div>
             }
+            <div class="field">
+              <label for="valor">{{ legacyPayment() ? 'Valor' : 'Tarifa' }}</label>
+              @if (legacyPayment()) {
+                <input id="valor" type="number" formControlName="valor" required
+                  aria-describedby="valor-error" [attr.aria-invalid]="!!fieldError('valor')" />
+              } @else {
+                <select id="valor" formControlName="valor" required
+                  aria-describedby="valor-error" [attr.aria-invalid]="!!fieldError('valor')">
+                  <option [ngValue]="null">Selecciona una tarifa</option>
+                  @for (tariff of tariffs; track tariff.value) {
+                    <option [ngValue]="tariff.value">{{ tariff.label }}</option>
+                  }
+                </select>
+              }
+              <span class="field-error" id="valor-error">{{ fieldError('valor') }}</span>
+            </div>
+            <div class="field">
+              <label for="periodo">Periodo</label>
+              <input id="periodo" formControlName="periodo" required
+                aria-describedby="periodo-error" [attr.aria-invalid]="!!fieldError('periodo')" />
+              <span class="field-error" id="periodo-error">{{ fieldError('periodo') }}</span>
+            </div>
           </div>
           <div class="actions">
-            <button type="submit" class="primary">
+            <button type="submit" class="primary" [disabled]="!legacyPayment() && !plates().length">
               {{ saving() ? 'Guardando…' : 'Guardar pago' }}</button
             ><button type="button" (click)="cancel()">Cancelar</button>
           </div>
@@ -96,6 +122,7 @@
           <thead>
             <tr>
               <th scope="col">Valor</th>
+              <th scope="col">Placa</th>
               <th scope="col">Periodo</th>
               <th scope="col">Fecha</th>
               <th scope="col">Acciones</th>
@@ -105,6 +132,7 @@
             @for (payment of items(); track payment.id) {
               <tr>
                 <th scope="row">{{ payment.valor }}</th>
+                <td>{{ payment.placa ?? 'Sin placa' }}</td>
                 <td>{{ payment.periodo }}</td>
                 <td>{{ payment.fecha }}</td>
                 <td class="row-actions">
