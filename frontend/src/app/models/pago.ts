@@ -1,6 +1,7 @@
+import type { TipoVehiculo } from './vehiculo';
+
 export interface PagoCrear {
   valor: number;
-  periodo: string;
   vehiculo_id: number;
 }
 export type PagoActualizar = Partial<PagoCrear>;
@@ -14,6 +15,14 @@ export interface Pago extends Omit<PagoCrear, 'valor' | 'vehiculo_id'> {
 export interface PlacaPago {
   id: number;
   placa: string;
+  tipo: TipoVehiculo;
+  tarifa: number | null;
+  tiene_pago: boolean;
+  pago_activo: boolean;
+}
+export interface TarifasPago {
+  automovil: number;
+  motocicleta: number;
 }
 export interface PagosPagina {
   items: Pago[];

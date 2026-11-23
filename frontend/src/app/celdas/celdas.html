@@ -101,7 +101,7 @@
         id="filter-input"
         [value]="filterText()"
         (input)="setFilterText($any($event.target).value)"
-        placeholder="Ej: moto, carro, camión..."
+        placeholder="Automóvil o motocicleta"
         [disabled]="busy()"
       />
       <button type="button" (click)="setFilterText('')" [disabled]="busy() || !filterText()">

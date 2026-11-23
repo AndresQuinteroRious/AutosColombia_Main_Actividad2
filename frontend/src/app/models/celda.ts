@@ -1,5 +1,7 @@
-export const TIPOS_CELDA = ['MOTO', 'CARRO', 'CAMION', 'OTRO'] as const;
-export type TipoCelda = (typeof TIPOS_CELDA)[number];
+import { TIPOS_VEHICULO, TipoVehiculo } from './vehiculo';
+
+export const TIPOS_CELDA = TIPOS_VEHICULO;
+export type TipoCelda = TipoVehiculo;
 
 export interface CeldaCrear {
   codigo: string;

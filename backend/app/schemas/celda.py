@@ -3,6 +3,7 @@ from typing import Annotated
 from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, field_validator
 
 from app.models import required_text
+from app.schemas.vehiculo import TipoVehiculo
 
 Texto = Annotated[str, BeforeValidator(lambda value: required_text(value, "El campo"))]
 Codigo = Annotated[Texto, AfterValidator(str.upper)]
@@ -11,13 +12,13 @@ Codigo = Annotated[Texto, AfterValidator(str.upper)]
 class CeldaCrear(BaseModel):
     model_config = ConfigDict(extra="forbid")
     codigo: Codigo
-    tipo: Texto
+    tipo: TipoVehiculo
 
 
 class CeldaActualizar(BaseModel):
     model_config = ConfigDict(extra="forbid")
     codigo: Codigo | None = None
-    tipo: Texto | None = None
+    tipo: TipoVehiculo | None = None
 
     @field_validator("*", mode="before")
     @classmethod

@@ -53,10 +53,10 @@ def create_vehicle(session: Session, data: VehiculoCrear) -> Vehiculo:
     vehicle = Vehiculo(**payload)
     session.add(vehicle)
     session.flush()
-    _set_monthly_status(session, vehicle.id, estado_mensualidad)
+    monthly = _set_monthly_status(session, vehicle.id, estado_mensualidad)
     session.commit()
     session.refresh(vehicle)
-    vehicle.estado_mensualidad = estado_mensualidad
+    vehicle.estado_mensualidad = monthly["estado"]
     return vehicle
 
 
@@ -67,10 +67,12 @@ def list_vehicles(session: Session, offset: int, limit: int) -> dict:
         text(
             """
             SELECT v.id, v.placa, v.color, v.modelo, v.marca, v.tipo, v.celda_id,
-                   m.estado AS estado_mensualidad
+                   m.estado AS estado_mensualidad,
+                   m.fecha_inicio AS fecha_inicio_mensualidad,
+                   m.fecha_final AS fecha_final_mensualidad
             FROM vehiculo AS v
             LEFT JOIN LATERAL (
-                SELECT estado
+                SELECT estado, fecha_inicio, fecha_final
                 FROM mensualidad
                 WHERE id_vehiculo = v.id
                 ORDER BY id_mensualidad DESC
@@ -95,8 +97,9 @@ def activate_monthly_status(session: Session, vehicle_id: int) -> dict:
 def _set_monthly_status(
     session: Session, vehicle_id: int, estado: EstadoMensualidad
 ) -> dict:
+    # FOR NO KEY UPDATE permite comprobar las claves foráneas de pagos concurrentes.
     vehicle = session.scalar(
-        select(Vehiculo.id).where(Vehiculo.id == vehicle_id).with_for_update()
+        select(Vehiculo.id).where(Vehiculo.id == vehicle_id).with_for_update(key_share=True)
     )
     if vehicle is None:
         raise VehiculoError(404, "Vehículo no encontrado.")
@@ -176,7 +179,8 @@ def update_vehicle(session: Session, vehicle_id: int, data: VehiculoActualizar) 
     for key, value in updates.items():
         setattr(vehicle, key, value)
     if estado_mensualidad is not None:
-        _set_monthly_status(session, vehicle_id, estado_mensualidad)
+        monthly = _set_monthly_status(session, vehicle_id, estado_mensualidad)
+        estado_mensualidad = monthly["estado"]
     session.commit()
     session.refresh(vehicle)
     if estado_mensualidad is None:

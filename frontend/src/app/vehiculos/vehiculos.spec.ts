@@ -21,7 +21,10 @@ describe('Gestión de vehículos', () => {
       input.dispatchEvent(new Event('input', { bubbles: true }));
     }
     const select = root.querySelector<HTMLSelectElement>('#tipo')!;
-    select.value = 'MOTO';
+    expect(Array.from(select.options, (option) => option.value)).toEqual([
+      '', 'AUTOMOVIL', 'MOTOCICLETA',
+    ]);
+    select.value = 'MOTOCICLETA';
     select.dispatchEvent(new Event('change', { bubbles: true }));
     root
       .querySelector('form')!
@@ -34,14 +37,15 @@ describe('Gestión de vehículos', () => {
   let fixture: ComponentFixture<Vehiculos>;
   let component: Vehiculos;
   let http: HttpTestingController;
-  const vehicle: Vehiculo = {
+  const vehicle = {
     id: 1,
     placa: 'ABC123',
     marca: 'Marca',
     color: 'Azul',
     modelo: 2025,
-    tipo: 'MOTO',
-  };
+    tipo: 'MOTOCICLETA',
+    estado_mensualidad: 'desactivado',
+  } satisfies Vehiculo;
   const flushList = (items: Vehiculo[] = [], total = items.length, offset = 0) => {
     http
       .expectOne(`/vehiculos?offset=${offset}&limit=10`)
@@ -64,7 +68,28 @@ describe('Gestión de vehículos', () => {
   it('muestra carga y listado vacío', () => {
     expect(fixture.nativeElement.textContent).toContain('Cargando vehículos');
     flushList();
-    expect(fixture.nativeElement.textContent).toContain('Aún no hay vehículos');
+    expect(fixture.nativeElement.textContent).toContain('No se encontraron vehículos');
+  });
+
+  it('muestra el estado y las fechas de mensualidad en el listado', () => {
+    flushList([
+      {
+        ...vehicle,
+        estado_mensualidad: 'activo',
+        fecha_inicio_mensualidad: '2026-11-22',
+        fecha_final_mensualidad: '2026-12-22',
+      },
+      { ...vehicle, id: 2, placa: 'XYZ987', estado_mensualidad: 'desactivado' },
+    ]);
+
+    const root = fixture.nativeElement as HTMLElement;
+    const rows = root.querySelectorAll('tbody tr');
+    expect(rows[0].querySelector('.membership-status.active')?.textContent).toContain('Con mensualidad');
+    expect(rows[1].querySelector('.membership-status:not(.active)')?.textContent).toContain('Sin mensualidad');
+    expect(Array.from(rows[0].querySelectorAll('.membership-date'), (cell) => cell.textContent))
+      .toEqual(['22/11/2026', '22/12/2026']);
+    expect(Array.from(rows[1].querySelectorAll('.membership-date'), (cell) => cell.textContent))
+      .toEqual(['—', '—']);
   });
 
   it('pagina usando offset y limit', () => {

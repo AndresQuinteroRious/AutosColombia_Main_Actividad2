@@ -1,4 +1,4 @@
-export const TIPOS_VEHICULO = ['MOTO', 'AUTOMOVIL', 'CAMIONETA', 'FURGON', 'CAMION', 'OTROS'] as const;
+export const TIPOS_VEHICULO = ['AUTOMOVIL', 'MOTOCICLETA'] as const;
 export type TipoVehiculo = (typeof TIPOS_VEHICULO)[number];
 export type EstadoMensualidad = 'activo' | 'desactivado';
 export interface VehiculoCrear {
@@ -14,6 +14,8 @@ export type VehiculoActualizar = Partial<VehiculoCrear>;
 export interface Vehiculo extends Omit<VehiculoCrear, 'estado_mensualidad'> {
   id: number;
   estado_mensualidad?: EstadoMensualidad | null;
+  fecha_inicio_mensualidad?: string | null;
+  fecha_final_mensualidad?: string | null;
 }
 export interface MensualidadRespuesta {
   id_mensualidad: number;

@@ -207,12 +207,21 @@ thead th {
   padding: 7px 10px;
   margin-right: 5px;
 }
-.type-tag {
+.membership-status {
+  display: inline-block;
   font-size: 11px;
-  color: var(--primary);
-  background: var(--primary-soft);
+  color: #991b1b;
+  background: #fee2e2;
   padding: 5px 8px;
   border-radius: 6px;
+}
+.membership-status.active {
+  color: #166534;
+  background: #dcfce7;
+}
+.membership-status,
+.membership-date {
+  white-space: nowrap;
 }
 .pagination {
   margin-top: 24px;

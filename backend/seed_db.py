@@ -17,23 +17,12 @@ def seed_celdas(session: Session) -> None:
     
     # Crear celdas para motos (A-01 a A-10)
     for i in range(1, 11):
-        celdas_data.append({"codigo": f"A-{i:02d}", "tipo": "Moto"})
+        celdas_data.append({"codigo": f"A-{i:02d}", "tipo": "MOTOCICLETA"})
     
-    # Crear celdas para automóviles (B-01 a B-10)
-    for i in range(1, 11):
-        celdas_data.append({"codigo": f"B-{i:02d}", "tipo": "Automóvil"})
-    
-    # Crear celdas para camionetas (C-01 a C-05)
-    for i in range(1, 6):
-        celdas_data.append({"codigo": f"C-{i:02d}", "tipo": "Camioneta"})
-    
-    # Crear celdas para furgones (D-01 a D-03)
-    for i in range(1, 4):
-        celdas_data.append({"codigo": f"D-{i:02d}", "tipo": "Furgón"})
-    
-    # Crear celdas para camiones (E-01 a E-02)
-    for i in range(1, 3):
-        celdas_data.append({"codigo": f"E-{i:02d}", "tipo": "Camión"})
+    # Mantener los códigos de las celdas para automóviles.
+    for letra, cantidad in (("B", 10), ("C", 5), ("D", 3), ("E", 2)):
+        for i in range(1, cantidad + 1):
+            celdas_data.append({"codigo": f"{letra}-{i:02d}", "tipo": "AUTOMOVIL"})
 
     for data in celdas_data:
         existing = session.query(Celda).filter_by(codigo=data["codigo"]).first()
@@ -67,17 +56,16 @@ def seed_vehiculos(session: Session) -> None:
     """Crear vehículos de prueba."""
     # Obtener celdas existentes
     celdas = session.query(Celda).all()
-    celda_map = {c.codigo: c.id for c in celdas}
-    celda_ids = list(celda_map.values())
+    celdas_por_tipo = {
+        tipo: [celda.id for celda in celdas if celda.tipo == tipo]
+        for tipo in ("AUTOMOVIL", "MOTOCICLETA")
+    }
 
     # Datos para generar vehículos aleatorios
     colores = ["Rojo", "Azul", "Blanco", "Negro", "Gris", "Verde", "Amarillo", "Plateado", "Café", "Beige", "Dorado", "Naranja"]
     marcas_auto = ["Chevrolet", "Renault", "Mazda", "Toyota", "Honda", "Nissan", "Volkswagen", "Kia", "Hyundai", "Peugeot"]
     marcas_moto = ["Honda", "Yamaha", "Suzuki", "Bajaj", "AKT", "Kawasaki"]
-    marcas_camioneta = ["Ford", "Chevrolet", "Toyota", "Nissan", "Mazda", "Jeep", "Mitsubishi"]
-    marcas_furgon = ["Mercedes-Benz", "Ford", "Renault", "Peugeot", "Fiat"]
-    marcas_camion = ["Volvo", "Scania", "Mercedes-Benz", "International", "MAN"]
-    tipos = ["MOTO", "AUTOMOVIL", "CAMIONETA", "FURGON", "CAMION", "OTROS"]
+    marcas_por_tipo = {"AUTOMOVIL": marcas_auto, "MOTOCICLETA": marcas_moto}
 
     def generar_placa(index: int) -> str:
         """Generar una placa aleatoria colombiana."""
@@ -88,21 +76,10 @@ def seed_vehiculos(session: Session) -> None:
 
     vehiculos_data = []
     for i in range(80):
-        tipo = random.choice(tipos)
-        
-        if tipo == "MOTO":
-            marca = random.choice(marcas_moto)
-        elif tipo == "AUTOMOVIL":
-            marca = random.choice(marcas_auto)
-        elif tipo == "CAMIONETA":
-            marca = random.choice(marcas_camioneta)
-        elif tipo == "FURGON":
-            marca = random.choice(marcas_furgon)
-        elif tipo == "CAMION":
-            marca = random.choice(marcas_camion)
-        else:
-            marca = random.choice(marcas_auto)
-        
+        tipo = random.choice(tuple(marcas_por_tipo))
+        marca = random.choice(marcas_por_tipo[tipo])
+        celda_ids = celdas_por_tipo[tipo]
+
         vehiculo = {
             "placa": generar_placa(i),
             "color": random.choice(colores),

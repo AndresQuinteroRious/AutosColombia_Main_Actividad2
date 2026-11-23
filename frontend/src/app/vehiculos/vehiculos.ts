@@ -193,8 +193,11 @@ export class Vehiculos {
       next: (vehicle) => {
         this.saving.set(false);
         this.showForm.set(false);
+          const activationPending =
+            payload.estado_mensualidad === 'activo' && vehicle.estado_mensualidad === 'desactivado';
         this.success.set(
-          `Vehículo ${vehicle.placa} ${id === null ? 'registrado' : 'actualizado'} correctamente.`,
+            `Vehículo ${vehicle.placa} ${id === null ? 'registrado' : 'actualizado'} correctamente.` +
+              (activationPending ? ' Registra un pago antes de activar la mensualidad.' : ''),
         );
         this.load();
       },
@@ -274,6 +277,10 @@ export class Vehiculos {
     return vehicle.estado_mensualidad === 'activo' ? 'Con mensualidad' : 'Sin mensualidad';
   }
 
+  formatMembershipDate(value: string | null | undefined): string {
+    return value ? value.split('-').reverse().join('/') : '—';
+  }
+
   activarMensualidad(vehicle: Vehiculo): void {
     if (this.busy() || vehicle.estado_mensualidad === 'activo') return;
     this.saving.set(true);
@@ -283,9 +290,13 @@ export class Vehiculos {
       .activateMonthlyStatus(vehicle.id)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: () => {
+        next: (monthly) => {
           this.saving.set(false);
-          this.success.set(`Mensualidad activada para el vehículo ${vehicle.placa}.`);
+          if (monthly.estado === 'activo') {
+            this.success.set(`Mensualidad activada para el vehículo ${vehicle.placa}.`);
+          } else {
+            this.actionError.set('Registra un pago antes de activar la mensualidad.');
+          }
           this.load();
         },
         error: (error: HttpErrorResponse) => {

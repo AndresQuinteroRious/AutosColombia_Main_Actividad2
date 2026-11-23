@@ -2,16 +2,33 @@
 
 ## Pantalla Pagos
 
-En el menú de administración, abre **Pagos → Nuevo pago**. Selecciona una placa
-registrada en la lista ordenada alfabéticamente, elige **Moto ($125.000 COP)** o
-**Automóvil ($250.000 COP)** e indica el periodo del pago. El listado muestra la
-placa asociada a cada registro.
+En **Pagos → Tarifas vigentes** se muestran los valores de automóvil y
+motocicleta. Las tarifas iniciales son $250.000 y $125.000 COP, respectivamente.
+Solo el administrador puede abrir **Actualizar tarifas** y guardar cambios.
+Las nuevas tarifas se usan al registrar pagos y los pagos anteriores conservan
+su valor.
 
-La pantalla usa las rutas relativas `GET /pagos/placas` y `POST /pagos` mediante
-el proxy de desarrollo. Antes de usarla, la base debe tener aplicada la revisión
-Alembic `pago_vehiculo`. Para revisar el SQL sin modificar la base, ejecuta
+En **Pagos → Nuevo pago**, selecciona un vehículo de la lista alfabética de
+placas. El formulario muestra la tarifa vigente y la fecha de hoy en Colombia.
+El servidor registra la fecha automáticamente al guardar.
+Cada placa admite un único pago registrado. Si la mensualidad está activa, la
+selección muestra un aviso en rojo. Para las placas con pagos duplicados, la
+revisión `pago_unico_por_vehiculo` conserva el pago más reciente. Los pagos
+históricos sin placa asociada se conservan.
+El listado muestra la placa asociada a cada pago.
+
+La pantalla usa el proxy de desarrollo para consultar y registrar pagos y para
+`GET /pagos/tarifas` y `PUT /pagos/tarifas`. El PUT requiere una sesión de
+administrador. La base debe tener aplicada la revisión Alembic `pago_unico_por_vehiculo`.
+Para revisar el SQL sin modificar la base, ejecuta
 `.\.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head --sql` desde
 `backend`.
+
+La tabla `mensualidad` toma `fecha_inicio` de la fecha en Colombia del último
+pago asociado al vehículo y calcula `fecha_final` sumando 30 días calendario.
+El registro de un pago activa automáticamente la mensualidad del vehículo en
+la misma transacción que guarda el pago y las fechas. Si el vehículo no tiene
+pagos asociados, ambas fechas quedan vacías y la mensualidad queda desactivada.
 
 ## Pantalla Control de acceso
 
@@ -80,7 +97,7 @@ if ($LASTEXITCODE -ne 0) { throw 'Fallaron las pruebas.' }
 
 1. Desde Vehículos, Celdas y Operadores prepara dos vehículos y una celda
    disponible con identificadores nuevos. Ejemplos: placas `PRUEBA-ACCESO-A-01`
-   y `PRUEBA-ACCESO-B-01`, celda `PRUEBA-CELDA-01` de tipo libre. El usuario de
+   y `PRUEBA-ACCESO-B-01`, celda `PRUEBA-CELDA-01` del mismo tipo que el vehículo. El usuario de
    prueba debe tener el mismo documento que su operador asociado. Cambia el sufijo
    si existe.
 2. Abre Control de acceso y pulsa **Actualizar catálogos**. En Registrar entrada,
@@ -221,8 +238,8 @@ y PostgreSQL real.
    `/docs`. Usa placas y código exclusivos de prueba (por ejemplo,
    `DOCS-EST-A-20261019`, `DOCS-EST-B-20261019` y `DOCS-CELDA-20261019`, cambiando el
    sufijo si ya existen). Vehículo de ejemplo:
-   `{"placa":"DOCS-EST-A-20261019","color":"Azul","modelo":2026,"marca":"Prueba","tipo":"MOTO"}`.
-   Celda: `{"codigo":"DOCS-CELDA-20261019","tipo":"Libre"}`.
+   `{"placa":"DOCS-EST-A-20261019","color":"Azul","modelo":2026,"marca":"Prueba","tipo":"MOTOCICLETA"}`.
+   Celda: `{"codigo":"DOCS-CELDA-20261019","tipo":"MOTOCICLETA"}`.
    Operadores: `{"nombre":"PRUEBA entrada","telefono":"001"}` y
    `{"nombre":"PRUEBA salida","telefono":"002"}`. Anota los ids reales.
 2. Consulta GET con la placa del primer vehículo: espera 200,
@@ -665,7 +682,8 @@ corresponden a esas ejecuciones completas.
 Disponible en la navegación **Celdas** y en
 <http://127.0.0.1:4200/gestion/celdas>. Incluye listado paginado, creación y edición
 de código y tipo, confirmación de eliminación y mensajes de resultado y error.
-El tipo es texto libre obligatorio; no se han definido compatibilidades con vehículos.
+El tipo debe ser `AUTOMOVIL` o `MOTOCICLETA`. En Control de acceso, el tipo de
+la celda debe coincidir con el tipo del vehículo.
 
 La tabla `celda` ya estaba creada por `0001`. Se verificaron las restricciones
 reales y no hubo migraciones pendientes ni cambios de esquema. El CRUD y sus
@@ -935,7 +953,7 @@ es distinta de la ruta API `/vehiculos` para evitar conflictos con el proxy.
   al registrar y editar; el backend guarda el estado junto al id del vehículo.
 - **Nuevo vehículo** abre un formulario reactivo con placa, marca, año, color y tipo.
   Todos son obligatorios; el año es entero entre 1 y 9999. La placa se recorta y
-  convierte a mayúsculas. Los tipos son MOTO, AUTOMOVIL y CAMIONETA.
+  convierte a mayúsculas. Los tipos son `AUTOMOVIL` y `MOTOCICLETA`.
 - **Editar** consulta la versión actual del vehículo y guarda mediante PATCH sin id.
 - **Eliminar** muestra una confirmación con placa, marca y año. Solo se envía DELETE
   al pulsar **Confirmar eliminación**; **Cancelar eliminación** no modifica datos.
@@ -1003,9 +1021,8 @@ manual; no constituyen una afirmación de que se haya ejecutado desde Swagger.
    debe ser mayor o igual a cero. Consulta `GET /celdas/{id}` con tu id para
    comprobar **200**, el código en mayúsculas y sin espacios exteriores.
 4. Repite el POST con ese mismo código: espera **409** por duplicado.
-5. En `PATCH /celdas/{id}`, envía `{"tipo":"Otro tipo de prueba"}`: espera **200**,
-   con el código conservado. `tipo` es texto libre; no es un selector de tipos
-   de vehículo. Código y tipo son obligatorios al crear; PATCH admite omitirlos,
+5. En `PATCH /celdas/{id}`, envía `{"tipo":"MOTOCICLETA"}` y espera **200**
+   con el código conservado. Código y tipo son obligatorios al crear. PATCH admite omitirlos,
    pero rechaza `null`, textos vacíos y espacios. Enviar `{"tipo":"   "}`,
    `{"codigo":null}` o un campo `id` en el cuerpo debe responder **422**.
 6. Elimina **solo el id que acabas de crear** mediante `DELETE /celdas/{id}`:
@@ -1024,7 +1041,7 @@ Inicia las dos terminales como se indica arriba y abre
 Este recorrido manual está pendiente de verificación en navegador:
 
 1. Comprueba el listado o el mensaje **Aún no hay celdas** si está vacío. Pulsa
-   **Nueva celda**, escribe un código nuevo exclusivo de prueba y un tipo libre,
+   **Nueva celda**, escribe un código nuevo exclusivo de prueba, elige un tipo,
    y pulsa **Guardar celda**. Espera la confirmación y el listado actualizado.
    Busca tu registro con **Siguiente** si no aparece en la primera página.
 2. Prueba campos vacíos o con espacios: deben aparecer errores junto a los campos.

@@ -141,7 +141,7 @@
       </div>
     } @else {
       <div class="table-scroll">
-        <table>                                                                                    0                                                                                                                                 +                                                                                                                                                                                                
+        <table>
           <caption class="sr-only">
             Vehículos filtrados
           </caption>
@@ -153,6 +153,8 @@
               <th scope="col">Año</th>
               <th scope="col">Color</th>
               <th scope="col">Estado mensualidad</th>
+              <th scope="col">Fecha de activación</th>
+              <th scope="col">Fecha de finalización</th>
               <th scope="col">Acciones</th>
             </tr>
           </thead>
@@ -165,8 +167,12 @@
                 <td>{{ vehicle.modelo }}</td>
                 <td>{{ vehicle.color }}</td>
                 <td>
-                  <span class="type-tag">{{ estadoMensualidad(vehicle) }}</span>
+                  <span class="membership-status" [class.active]="vehicle.estado_mensualidad === 'activo'">
+                    {{ estadoMensualidad(vehicle) }}
+                  </span>
                 </td>
+                <td class="membership-date">{{ formatMembershipDate(vehicle.fecha_inicio_mensualidad) }}</td>
+                <td class="membership-date">{{ formatMembershipDate(vehicle.fecha_final_mensualidad) }}</td>
                 <td class="row-actions">
                   @if (vehicle.estado_mensualidad !== 'activo') {
                     <button

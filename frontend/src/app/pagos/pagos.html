@@ -10,91 +10,153 @@
       Nuevo pago
     </button>
   </header>
-  @if (success()) {
-    <p class="notice success" role="status">{{ success() }}</p>
+  @if (registeredPayment(); as payment) {
+    <div class="notice success" role="status" aria-atomic="true">
+      <strong>Pago registrado correctamente.</strong>
+      <dl class="payment-details">
+        <div>
+          <dt>Valor</dt>
+          <dd>{{ formatCurrency(payment.valor) }}</dd>
+        </div>
+        <div>
+          <dt>Placa</dt>
+          <dd>{{ payment.placa ?? 'Sin placa' }}</dd>
+        </div>
+        <div>
+          <dt>Fecha</dt>
+          <dd>{{ formatDate(payment.fecha) }}</dd>
+        </div>
+      </dl>
+    </div>
   }
   @if (actionError()) {
     <p class="notice error" role="alert">{{ actionError() }}</p>
   }
+  <section class="panel" aria-labelledby="tariffs-title" [attr.aria-busy]="tariffsLoading()">
+    <div class="list-heading">
+      <h2 id="tariffs-title">Tarifas vigentes</h2>
+      @if (tariffs() && canUpdateTariffs() && !editingTariffs()) {
+        <button type="button" (click)="editTariffs()" [disabled]="tariffsLoading()">
+          Actualizar tarifas
+        </button>
+      }
+    </div>
+    @if (tariffsError()) {
+      <p class="notice error" role="alert">{{ tariffsError() }}</p>
+    }
+    @if (tariffsSuccess()) {
+      <p class="notice success" role="status">{{ tariffsSuccess() }}</p>
+    }
+    @if (tariffsLoading()) {
+      <p role="status">Cargando tarifas…</p>
+    } @else if (tariffs(); as current) {
+      <dl class="tariff-values">
+        <div>
+          <dt>Automóvil</dt>
+          <dd>{{ formatCurrency(current.automovil) }}</dd>
+        </div>
+        <div>
+          <dt>Motocicleta</dt>
+          <dd>{{ formatCurrency(current.motocicleta) }}</dd>
+        </div>
+      </dl>
+      @if (editingTariffs() && canUpdateTariffs()) {
+        <form [formGroup]="tariffForm" (ngSubmit)="saveTariffs()" novalidate>
+          <fieldset [disabled]="tariffsSaving()">
+            <legend class="sr-only">Actualizar tarifas en pesos colombianos</legend>
+            <div class="form-grid">
+              <div class="field">
+                <label for="tarifa-automovil">Nueva tarifa de automóvil (COP)</label>
+                <input id="tarifa-automovil" type="number" formControlName="automovil"
+                  min="0.01" max="99999999.99" step="0.01" required
+                  aria-describedby="tariff-instructions" />
+              </div>
+              <div class="field">
+                <label for="tarifa-motocicleta">Nueva tarifa de motocicleta (COP)</label>
+                <input id="tarifa-motocicleta" type="number" formControlName="motocicleta"
+                  min="0.01" max="99999999.99" step="0.01" required
+                  aria-describedby="tariff-instructions" />
+              </div>
+            </div>
+            <p id="tariff-instructions" class="hint">
+              Ingresa valores entre 0,01 y 99.999.999,99 COP, con hasta dos decimales.
+            </p>
+            <div class="actions">
+              <button type="submit" class="primary"
+                [disabled]="tariffForm.invalid || loadingPlates() || saving()">
+                {{ tariffsSaving() ? 'Guardando…' : 'Guardar tarifas' }}
+              </button>
+              <button type="button" (click)="cancelTariffs()">Cancelar</button>
+            </div>
+          </fieldset>
+        </form>
+      }
+    } @else {
+      <button type="button" (click)="loadTariffs()">Reintentar</button>
+    }
+  </section>
   @if (showForm()) {
     <section class="panel" aria-labelledby="form-title">
-      <h2 id="form-title">{{ editing() === null ? 'Registrar pago' : 'Editar pago' }}</h2>
+      <h2 id="form-title">Registrar pago</h2>
       <form [formGroup]="form" (ngSubmit)="save()" novalidate>
         <fieldset [disabled]="busy()">
           <legend class="sr-only">Datos del pago</legend>
           <div class="form-grid">
-            @if (!legacyPayment()) {
-              <div class="field">
-                <label for="vehiculo_id">Placa</label>
-                <select id="vehiculo_id" formControlName="vehiculo_id" required
-                  [attr.aria-invalid]="!!fieldError('vehiculo_id')"
-                  aria-describedby="placa-error">
-                  <option [ngValue]="null">Selecciona una placa</option>
-                  @for (vehicle of plates(); track vehicle.id) {
-                    <option [ngValue]="vehicle.id">{{ vehicle.placa }}</option>
-                  }
-                </select>
-                <span class="field-error" id="placa-error">{{ fieldError('vehiculo_id') }}</span>
-                @if (loadingPlates()) {
-                  <span role="status">Cargando placas…</span>
-                } @else if (platesError()) {
-                  <span role="alert">{{ platesError() }}</span>
-                  <button type="button" (click)="loadPlates()">Reintentar</button>
-                } @else if (!plates().length) {
-                  <span role="status">Registra un vehículo para poder seleccionar su placa.</span>
-                }
-              </div>
-            }
             <div class="field">
-              <label for="valor">{{ legacyPayment() ? 'Valor' : 'Tarifa' }}</label>
-              @if (legacyPayment()) {
-                <input id="valor" type="number" formControlName="valor" required
-                  aria-describedby="valor-error" [attr.aria-invalid]="!!fieldError('valor')" />
-              } @else {
-                <select id="valor" formControlName="valor" required
-                  aria-describedby="valor-error" [attr.aria-invalid]="!!fieldError('valor')">
-                  <option [ngValue]="null">Selecciona una tarifa</option>
-                  @for (tariff of tariffs; track tariff.value) {
-                    <option [ngValue]="tariff.value">{{ tariff.label }}</option>
-                  }
-                </select>
+              <label for="vehiculo_id">Placa</label>
+              <select id="vehiculo_id" formControlName="vehiculo_id" required
+                [attr.aria-invalid]="!!fieldError('vehiculo_id') || !!selectedVehicle()?.tiene_pago"
+                aria-describedby="placa-error">
+                <option [ngValue]="null">Selecciona una placa</option>
+                @for (vehicle of plates(); track vehicle.id) {
+                  <option [ngValue]="vehicle.id">{{ vehicle.placa }}</option>
+                }
+              </select>
+              <span class="field-error" id="placa-error" aria-live="polite"
+                [class.duplicate-payment-warning]="selectedVehicle()?.tiene_pago">
+                @if (selectedVehicle()?.pago_activo) {
+                  Esta placa ya tiene un pago activo.
+                } @else if (selectedVehicle()?.tiene_pago) {
+                  Esta placa ya tiene un pago registrado.
+                } @else {
+                  {{ fieldError('vehiculo_id') }}
+                }
+              </span>
+              @if (loadingPlates()) {
+                <span role="status">Cargando placas…</span>
+              } @else if (platesError()) {
+                <span role="alert">{{ platesError() }}</span>
+                <button type="button" (click)="loadPlates()">Reintentar</button>
+              } @else if (!plates().length) {
+                <span role="status">Registra un vehículo para poder seleccionar su placa.</span>
               }
+            </div>
+            <div class="field">
+              <label for="valor">Tarifa</label>
+              <output id="valor" for="vehiculo_id" aria-live="polite">
+                @if (tariffLabel()) {
+                  {{ tariffLabel() }}
+                } @else if (selectedVehicle()) {
+                  Este tipo de vehículo no tiene una tarifa configurada.
+                } @else {
+                  Selecciona una placa para ver la tarifa.
+                }
+              </output>
               <span class="field-error" id="valor-error">{{ fieldError('valor') }}</span>
             </div>
             <div class="field">
-              <label for="periodo">Periodo</label>
-              <input id="periodo" formControlName="periodo" required
-                aria-describedby="periodo-error" [attr.aria-invalid]="!!fieldError('periodo')" />
-              <span class="field-error" id="periodo-error">{{ fieldError('periodo') }}</span>
+              <label for="fecha">Fecha</label>
+              <input id="fecha" [value]="registrationDate()" readonly />
             </div>
           </div>
           <div class="actions">
-            <button type="submit" class="primary" [disabled]="!legacyPayment() && !plates().length">
+            <button type="submit" class="primary"
+              [disabled]="!tariffLabel() || !!selectedVehicle()?.tiene_pago">
               {{ saving() ? 'Guardando…' : 'Guardar pago' }}</button
             ><button type="button" (click)="cancel()">Cancelar</button>
           </div>
         </fieldset>
       </form>
-    </section>
-  }
-  @if (pendingDelete(); as payment) {
-    <section
-      class="panel confirmation"
-      role="alertdialog"
-      aria-labelledby="delete-title"
-      aria-describedby="delete-description"
-    >
-      <h2 id="delete-title">Eliminar pago</h2>
-      <p id="delete-description">
-        ¿Quieres eliminar el pago de valor {{ payment.valor }} (id {{ payment.id }})? Esta acción no se puede
-        deshacer.
-      </p>
-      <div class="actions">
-        <button type="button" (click)="cancel()" [disabled]="busy()">Cancelar eliminación</button
-        ><button type="button" class="danger" (click)="remove()" [disabled]="busy()">
-          {{ saving() ? 'Eliminando…' : 'Confirmar eliminación' }}
-        </button>
-      </div>
     </section>
   }
   <section class="panel list" aria-label="Listado de pagos" [attr.aria-busy]="loading()">
@@ -123,9 +185,7 @@
             <tr>
               <th scope="col">Valor</th>
               <th scope="col">Placa</th>
-              <th scope="col">Periodo</th>
               <th scope="col">Fecha</th>
-              <th scope="col">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -133,26 +193,7 @@
               <tr>
                 <th scope="row">{{ payment.valor }}</th>
                 <td>{{ payment.placa ?? 'Sin placa' }}</td>
-                <td>{{ payment.periodo }}</td>
-                <td>{{ payment.fecha }}</td>
-                <td class="row-actions">
-                  <button
-                    type="button"
-                    (click)="edit(payment)"
-                    [disabled]="busy()"
-                    [attr.aria-label]="'Editar pago ' + payment.id"
-                  >
-                    Editar</button
-                  ><button
-                    type="button"
-                    class="delete-link"
-                    (click)="confirmDelete(payment)"
-                    [disabled]="busy()"
-                    [attr.aria-label]="'Eliminar pago ' + payment.id"
-                  >
-                    Eliminar
-                  </button>
-                </td>
+                <td>{{ formatDate(payment.fecha) }}</td>
               </tr>
             }
           </tbody>

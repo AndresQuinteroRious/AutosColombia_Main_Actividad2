@@ -93,11 +93,11 @@ El CRUD sigue la organización de vehículos: `app/schemas/celda.py`,
 | PATCH `/celdas/{id}` | 200; solo campos enviados, sin id ni valores nulos |
 | DELETE `/celdas/{id}` | 204 sin cuerpo |
 
-`codigo` se recorta y convierte a mayúsculas. `tipo` es texto libre obligatorio,
-sin categorías ni compatibilidades con vehículos. Blancos y datos inválidos
+`codigo` se recorta y convierte a mayúsculas. `tipo` admite `AUTOMOVIL` y
+`MOTOCICLETA`. Blancos y datos inválidos
 devuelven 422; código duplicado y conflictos de relaciones devuelven 409, con
 rollback. No se borran registros relacionados. Usa `/docs`, sección **Celdas**,
-con un ejemplo como `{"codigo":"A-01","tipo":"Espacio general"}`.
+con un ejemplo como `{"codigo":"A-01","tipo":"AUTOMOVIL"}`.
 
 Las pruebas `tests/test_celdas_postgres.py` se habilitan con `RUN_POSTGRES_TESTS=1`,
 igual que las de vehículos. Verifican restricciones y CRUD reales dentro de
@@ -216,8 +216,7 @@ y de la configuración (`app/config.py`). La revisión `0001`, en
   la base rechaza valores sin normalizar en lugar de transformarlos silenciosamente.
 - `modelo` es un año entero entre 1 y 9999, no un nombre comercial; no se impone
   un límite vinculado al año actual. `telefono` es texto y conserva prefijos y ceros.
-- El tipo de vehículo admite únicamente `MOTO`, `AUTOMOVIL` y `CAMIONETA`.
-  El tipo de celda es texto no vacío, sin catálogo ni reglas de compatibilidad todavía.
+- Los tipos de vehículo y celda admiten `AUTOMOVIL` y `MOTOCICLETA`.
 - No hay relaciones ni Estancia ni creación automática de tablas al iniciar
   FastAPI. `/health` conserva su funcionamiento independiente.
 
@@ -401,7 +400,7 @@ registro si todavía no existe, o actualiza el más reciente. La operación es i
 Al crear se requieren placa, color, modelo, marca y tipo. El año debe ser un
 entero JSON entre 1 y 9999; no se aceptan cadenas, booleanos ni decimales. Los
 textos no pueden estar vacíos. La placa se recorta y se convierte a mayúsculas.
-Los tipos admitidos son `MOTO`, `AUTOMOVIL` y `CAMIONETA`.
+Los tipos admitidos son `AUTOMOVIL` y `MOTOCICLETA`.
 
 PATCH aplica solo los campos enviados, rechaza valores nulos y campos desconocidos,
 incluido `id`. Un objeto vacío conserva el vehículo. Los errores de validación
@@ -712,17 +711,13 @@ Al iniciar la aplicación, se crea automáticamente un usuario administrador:
 - Teléfono: `3001112222`
 - Rol: `ADMINISTRADOR`
 
-### Tipos de vehículo extendidos
+### Tipos de vehículo y celda
 
-Además de los tipos originales, el sistema ahora admite:
-- `MOTO`
-- `AUTOMOVIL`
-- `CAMIONETA`
-- `FURGON` (agregado)
-- `CAMION` (agregado)
-- `OTROS` (agregado)
-
-Migración: `4be64630245c`
+La revisión `tipos_vehiculo_celda` limita ambas tablas a `AUTOMOVIL` y
+`MOTOCICLETA`. Convierte `MOTO` a `MOTOCICLETA` y los demás tipos anteriores,
+incluidos `CAMION`, `FURGON`, `CAMIONETA` y `CARRO`, a `AUTOMOVIL`.
+Al revertir la revisión, `MOTOCICLETA` vuelve a `MOTO`. La agrupación en
+`AUTOMOVIL` requiere un respaldo para recuperar las categorías originales.
 
 ### Relación Vehículo-Celda
 

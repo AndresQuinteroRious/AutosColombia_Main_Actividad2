@@ -1,15 +1,28 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { timeout } from 'rxjs';
-import { Pago, PagoActualizar, PagoCrear, PagosPagina, PlacaPago } from '../models/pago';
+import { Pago, PagoActualizar, PagoCrear, PagosPagina, PlacaPago, TarifasPago } from '../models/pago';
 
-import { API_BASE_URL } from './api.service';
+import { API_BASE_URL, ApiService } from './api.service';
 
 @Injectable({ providedIn: 'root' })
 export class PagosService {
   private readonly http = inject(HttpClient);
+  private readonly session = inject(ApiService);
   private readonly base = inject(API_BASE_URL);
   private readonly payments = `${this.base}/pagos`;
+
+  getTariffs() {
+    return this.http.get<TarifasPago>(`${this.payments}/tarifas`).pipe(timeout(15000));
+  }
+
+  updateTariffs(data: TarifasPago) {
+    return this.http
+      .put<TarifasPago>(`${this.payments}/tarifas`, data, {
+        headers: this.session.getAuthHeaders(),
+      })
+      .pipe(timeout(15000));
+  }
 
   listPlates() {
     return this.http.get<PlacaPago[]>(`${this.payments}/placas`).pipe(timeout(15000));

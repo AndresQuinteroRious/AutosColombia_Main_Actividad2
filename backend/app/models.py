@@ -11,10 +11,20 @@ class Base(DeclarativeBase):
     pass
 
 
+TIPOS_ESTACIONAMIENTO = "tipo IN ('AUTOMOVIL', 'MOTOCICLETA')"
+
+
 def required_text(value: str, attribute: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{attribute} debe ser texto no vacío.")
     return value.strip()
+
+
+def tipo_estacionamiento(value: str) -> str:
+    value = required_text(value, "tipo")
+    if value not in {"AUTOMOVIL", "MOTOCICLETA"}:
+        raise ValueError("tipo debe ser AUTOMOVIL o MOTOCICLETA.")
+    return value
 
 
 class Vehiculo(Base):
@@ -26,7 +36,7 @@ class Vehiculo(Base):
         CheckConstraint("color ~ '[^[:space:]]'", name="ck_vehiculo_color_no_vacio"),
         CheckConstraint("marca ~ '[^[:space:]]'", name="ck_vehiculo_marca_no_vacia"),
         CheckConstraint("modelo BETWEEN 1 AND 9999", name="ck_vehiculo_modelo_anio"),
-        CheckConstraint("tipo IN ('MOTO', 'AUTOMOVIL', 'CAMIONETA', 'FURGON', 'CAMION', 'OTROS')", name="ck_vehiculo_tipo"),
+        CheckConstraint(TIPOS_ESTACIONAMIENTO, name="ck_vehiculo_tipo"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -41,11 +51,11 @@ class Vehiculo(Base):
 
     @validates("placa", "color", "marca", "tipo")
     def validate_text(self, key: str, value: str) -> str:
+        if key == "tipo":
+            return tipo_estacionamiento(value)
         value = required_text(value, key)
         if key == "placa":
             return value.upper()
-        if key == "tipo" and value not in {"MOTO", "AUTOMOVIL", "CAMIONETA", "FURGON", "CAMION", "OTROS"}:
-            raise ValueError("tipo debe ser MOTO, AUTOMOVIL, CAMIONETA, FURGON, CAMION u OTROS.")
         return value
 
     @validates("modelo")
@@ -64,6 +74,7 @@ class Celda(Base):
         CheckConstraint("codigo ~ '[^[:space:]]'", name="ck_celda_codigo_no_vacio"),
         CheckConstraint("codigo = upper(regexp_replace(codigo, '^[[:space:]]+|[[:space:]]+$', '', 'g'))", name="ck_celda_codigo_normalizado"),
         CheckConstraint("tipo ~ '[^[:space:]]'", name="ck_celda_tipo_no_vacio"),
+        CheckConstraint(TIPOS_ESTACIONAMIENTO, name="ck_celda_tipo"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(always=True), primary_key=True)
@@ -72,8 +83,7 @@ class Celda(Base):
 
     @validates("codigo", "tipo")
     def validate_text(self, key: str, value: str) -> str:
-        value = required_text(value, key)
-        return value.upper() if key == "codigo" else value
+        return tipo_estacionamiento(value) if key == "tipo" else required_text(value, key).upper()
 
 
 class Operador(Base):
@@ -257,9 +267,24 @@ class Novedad(Base):
         return required_text(value, key)
 
 
+class TarifaPago(Base):
+    __tablename__ = "tarifa_pago"
+    __table_args__ = (
+        CheckConstraint("id = 1", name="ck_tarifa_pago_configuracion_unica"),
+        CheckConstraint(
+            "automovil > 0 AND motocicleta > 0", name="ck_tarifa_pago_valores_positivos",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
+    automovil: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    motocicleta: Mapped[decimal.Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+
+
 class Pago(Base):
     __tablename__ = "pago"
     __table_args__ = (
+        UniqueConstraint("vehiculo_id", name="uq_pago_vehiculo"),
         CheckConstraint("valor > 0", name="ck_pago_valor_positivo"),
         CheckConstraint("periodo ~ '[^[:space:]]'", name="ck_pago_periodo_no_vacio"),
     )

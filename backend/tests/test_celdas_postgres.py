@@ -35,10 +35,10 @@ def test_celda_schema_and_constraints(connection):
     assert inspector.get_pk_constraint('celda')['constrained_columns'] == ['id']
     assert any(c['column_names'] == ['codigo'] for c in inspector.get_unique_constraints('celda'))
     code = 'SCHEMA-' + uuid4().hex.upper()
-    connection.execute(text('INSERT INTO celda(codigo,tipo) VALUES (:code,:type)'), {'code':code,'type':'Libre'})
-    for code_value, kind, state in [(code,'Otro','23505'), (' lowercase ','Libre','23514'),
-                                    (' \t','Libre','23514'), (code+'X',' \t','23514'),
-                                    (None,'Libre','23502'), (code+'Y',None,'23502')]:
+    connection.execute(text('INSERT INTO celda(codigo,tipo) VALUES (:code,:type)'), {'code':code,'type':'AUTOMOVIL'})
+    for code_value, kind, state in [(code,'AUTOMOVIL','23505'), (' lowercase ','AUTOMOVIL','23514'),
+                                    (' \t','AUTOMOVIL','23514'), (code+'X',' \t','23514'), (code+'Z','CAMION','23514'),
+                                    (None,'AUTOMOVIL','23502'), (code+'Y',None,'23502')]:
         with pytest.raises(IntegrityError) as error:
             with connection.begin_nested():
                 connection.execute(text('INSERT INTO celda(codigo,tipo) VALUES (:code,:type)'), {'code':code_value,'type':kind})
@@ -53,26 +53,26 @@ def test_crud_celdas(connection):
         try:
             with TestClient(app) as client:
                 code = 'CELL-' + uuid4().hex.upper()
-                payload = {'codigo': f' {code.lower()} ', 'tipo': ' Categoría libre '}
+                payload = {'codigo': f' {code.lower()} ', 'tipo': ' AUTOMOVIL '}
                 result = client.post('/celdas', json=payload)
                 assert result.status_code == 201
                 item = result.json()
-                assert item['codigo'] == code and item['tipo'] == 'Categoría libre'
+                assert item['codigo'] == code and item['tipo'] == 'AUTOMOVIL'
                 path = f"/celdas/{item['id']}"
                 assert client.get(path).json() == item
                 assert client.post('/celdas', json=payload).status_code == 409
                 page = client.get('/celdas?offset=0&limit=1')
                 assert page.status_code == 200 and len(page.json()['items']) == 1
                 assert client.get('/celdas?limit=0').status_code == 422
-                for invalid in ({'id':1}, {'codigo':None}, {'tipo':' \t'}, {'tipo':None}):
+                for invalid in ({'id':1}, {'codigo':None}, {'tipo':' \t'}, {'tipo':None}, {'tipo':'CAMION'}):
                     assert client.patch(path, json=invalid).status_code == 422
                 assert client.post('/celdas', json={}).status_code == 422
-                changed = client.patch(path, json={'tipo':'Otro tipo libre'})
-                assert changed.status_code == 200 and changed.json()['tipo'] == 'Otro tipo libre'
+                changed = client.patch(path, json={'tipo':'MOTOCICLETA'})
+                assert changed.status_code == 200 and changed.json()['tipo'] == 'MOTOCICLETA'
                 deleted = client.delete(path)
                 assert deleted.status_code == 204 and deleted.content == b''
                 assert client.get(path).status_code == 404
-                assert client.patch(path, json={'tipo':'Libre'}).status_code == 404
+                assert client.patch(path, json={'tipo':'AUTOMOVIL'}).status_code == 404
                 assert client.delete(path).status_code == 404
                 assert client.get('/health').json() == {'status':'ok'}
         finally:

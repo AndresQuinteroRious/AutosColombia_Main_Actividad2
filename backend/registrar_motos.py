@@ -12,7 +12,7 @@ for codigo in celdas:
     try:
         response = requests.post(
             f"{api_url}/celdas",
-            json={"codigo": str(codigo), "tipo": "MOTO"}
+            json={"codigo": str(codigo), "tipo": "MOTOCICLETA"}
         )
         if response.status_code == 201:
             print(f"  ✓ Celda {codigo} creada")
@@ -29,7 +29,7 @@ celdas_response = requests.get(f"{api_url}/celdas?offset=0&limit=100")
 celdas_data = celdas_response.json()
 celdas_map = {c['codigo']: c['id'] for c in celdas_data['items']}
 
-# Crear vehículos tipo MOTO
+# Crear vehículos tipo MOTOCICLETA
 print("\nRegistrando motos...")
 for codigo in celdas:
     if codigo not in celdas_map:
@@ -45,7 +45,7 @@ for codigo in celdas:
                 "color": "Rojo",
                 "modelo": 2025,
                 "marca": "Yamaha",
-                "tipo": "MOTO",
+                "tipo": "MOTOCICLETA",
                 "celda_id": celdas_map[str(codigo)]
             }
         )

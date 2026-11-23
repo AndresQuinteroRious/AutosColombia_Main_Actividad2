@@ -18,7 +18,7 @@ describe('Filtro por usuario del historial', () => {
     const empty = { items: [], total: 20, offset: 0, limit: 10 };
     http.expectOne((r) => r.url === '/estancias/abiertas').flush([
       { id: 42, placa: 'ABC123', marca: 'Marca', modelo: 2026, color: 'Azul',
-        tipo: 'MOTO', celda: 'A1', entrada: '2026-11-15T08:00:00Z', operador_entrada: 'Ana' },
+        tipo: 'MOTOCICLETA', celda: 'A1', entrada: '2026-11-15T08:00:00Z', operador_entrada: 'Ana' },
     ]);
     http.expectOne((r) => r.url === '/usuarios/opciones-historial').flush([
       { id: 2, nombre: 'Ana', documento: 'DOC2' },

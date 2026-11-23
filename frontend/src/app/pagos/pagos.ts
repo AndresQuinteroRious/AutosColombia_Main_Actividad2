@@ -1,19 +1,19 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
+import { ApiService } from '../services/api.service';
 import { PagosService } from '../services/pagos.service';
-import { Pago, PagoCrear, PlacaPago } from '../models/pago';
+import { Pago, PagoCrear, PlacaPago, TarifasPago } from '../models/pago';
 import { ErrorApi } from '../models/vehiculo';
 import { RolBadge } from '../shared/rol-badge/rol-badge';
 
-const nonBlank: ValidatorFn = (control) =>
-  typeof control.value === 'string' && control.value.trim() ? null : { required: true };
-const positiveValue: ValidatorFn = (control) => {
-  const value = Number(control.value);
-  return value > 0 ? null : { positive: true };
-};
 type Field = keyof PagoCrear;
+
+const validTariff: ValidatorFn = ({ value }) =>
+  typeof value === 'number' && /^\d{1,8}(\.\d{1,2})?$/.test(String(value)) && value > 0
+    ? null
+    : { amount: true };
 
 @Component({
   selector: 'app-pagos',
@@ -23,39 +23,136 @@ type Field = keyof PagoCrear;
 })
 export class Pagos {
   private readonly api = inject(PagosService);
+  private readonly session = inject(ApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly fb = inject(FormBuilder);
-  readonly tariffs = [
-    { value: 125000, label: 'Moto — $125.000 COP' },
-    { value: 250000, label: 'Automóvil — $250.000 COP' },
-  ];
+  private readonly currency = new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0,
+  });
+  private readonly dateFormat = new Intl.DateTimeFormat('es-CO', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'America/Bogota',
+  });
+  readonly registrationDate = signal('');
+  readonly tariffs = signal<TarifasPago | null>(null);
+  readonly tariffsLoading = signal(false);
+  readonly tariffsSaving = signal(false);
+  readonly tariffsError = signal('');
+  readonly tariffsSuccess = signal('');
+  readonly editingTariffs = signal(false);
+  readonly tariffForm = this.fb.group({
+    automovil: this.fb.control<number | null>(null, validTariff),
+    motocicleta: this.fb.control<number | null>(null, validTariff),
+  });
   readonly form = this.fb.group({
-    valor: this.fb.control<number | null>(null, [Validators.required, positiveValue]),
-    periodo: this.fb.nonNullable.control('', nonBlank),
-    vehiculo_id: this.fb.control<number | null>(null),
+    valor: this.fb.control<number | null>(null),
+    vehiculo_id: this.fb.control<number | null>(null, Validators.required),
   });
   readonly plates = signal<PlacaPago[]>([]);
+  private readonly selectedId = toSignal(this.form.controls.vehiculo_id.valueChanges);
+  readonly selectedVehicle = computed(() =>
+    this.plates().find((vehicle) => vehicle.id === this.selectedId()),
+  );
+  readonly tariffLabel = computed(() => {
+    const vehicle = this.selectedVehicle();
+    if (!vehicle || vehicle.tarifa === null) return '';
+    const type = vehicle.tipo === 'MOTOCICLETA' ? 'Motocicleta' : 'Automóvil';
+    return `${type} — ${this.formatCurrency(vehicle.tarifa)}`;
+  });
   readonly loadingPlates = signal(false);
   readonly platesError = signal('');
-  readonly legacyPayment = signal(false);
   readonly items = signal<Pago[]>([]);
   readonly total = signal(0);
   readonly offset = signal(0);
   readonly limit = 10;
   readonly loading = signal(false);
   readonly saving = signal(false);
-  readonly busy = computed(() => this.loading() || this.saving());
+  readonly busy = computed(() => this.loading() || this.saving() || this.tariffsSaving());
   readonly showForm = signal(false);
-  readonly editing = signal<number | null>(null);
-  readonly pendingDelete = signal<Pago | null>(null);
   readonly listError = signal('');
   readonly actionError = signal('');
-  readonly success = signal('');
+  readonly registeredPayment = signal<Pago | null>(null);
   readonly page = computed(() => Math.floor(this.offset() / this.limit) + 1);
   readonly pages = computed(() => Math.max(1, Math.ceil(this.total() / this.limit)));
 
   constructor() {
     this.load();
+    this.loadTariffs();
+  }
+
+  canUpdateTariffs(): boolean {
+    return this.session.isLoggedIn() && this.session.getRol() === 'ADMINISTRADOR';
+  }
+
+  formatCurrency(value: number | string): string {
+    return `${this.currency.format(Number(value))} COP`;
+  }
+
+  loadTariffs(): void {
+    if (this.tariffsLoading() || this.tariffsSaving()) return;
+    this.tariffsLoading.set(true);
+    this.tariffsError.set('');
+    this.api.getTariffs().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (data) => {
+        this.tariffs.set(data);
+        this.tariffsLoading.set(false);
+      },
+      error: () => {
+        this.tariffsError.set('No se pudieron consultar las tarifas vigentes.');
+        this.tariffsLoading.set(false);
+      },
+    });
+  }
+
+  editTariffs(): void {
+    const current = this.tariffs();
+    if (!current || !this.canUpdateTariffs() || this.tariffsLoading()) return;
+    this.tariffForm.reset(current);
+    this.tariffsError.set('');
+    this.tariffsSuccess.set('');
+    this.editingTariffs.set(true);
+  }
+
+  cancelTariffs(): void {
+    if (this.tariffsSaving()) return;
+    this.editingTariffs.set(false);
+    this.tariffsError.set('');
+  }
+
+  saveTariffs(): void {
+    if (
+      this.tariffsSaving() || this.loadingPlates() || this.saving() ||
+      !this.editingTariffs() || !this.canUpdateTariffs()
+    ) return;
+    this.tariffForm.markAllAsTouched();
+    const { automovil, motocicleta } = this.tariffForm.getRawValue();
+    if (this.tariffForm.invalid || automovil === null || motocicleta === null) return;
+    this.tariffsSaving.set(true);
+    this.tariffsError.set('');
+    this.api.updateTariffs({ automovil, motocicleta }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (data) => {
+        this.tariffs.set(data);
+        this.plates.update((plates) =>
+          plates.map((vehicle) => ({
+            ...vehicle,
+            tarifa: vehicle.tipo === 'AUTOMOVIL' ? data.automovil : data.motocicleta,
+          })),
+        );
+        this.tariffsSaving.set(false);
+        this.editingTariffs.set(false);
+        this.tariffsSuccess.set('Tarifas actualizadas correctamente.');
+      },
+      error: (error: HttpErrorResponse) => {
+        this.tariffsSaving.set(false);
+        this.tariffsError.set(error.status === 401 || error.status === 403
+          ? 'Inicia sesión como administrador para actualizar las tarifas.'
+          : 'No se pudieron actualizar las tarifas. Revisa los valores e inténtalo de nuevo.');
+      },
+    });
   }
 
   load(offset = this.offset()): void {
@@ -86,19 +183,15 @@ export class Pagos {
   newPayment(): void {
     if (this.busy()) return;
     this.form.reset();
-    this.legacyPayment.set(false);
-    this.form.controls.vehiculo_id.setValidators(Validators.required);
-    this.form.controls.vehiculo_id.updateValueAndValidity();
-    this.editing.set(null);
+    this.registrationDate.set(this.formatDate(new Date()));
     this.showForm.set(true);
-    this.pendingDelete.set(null);
     this.actionError.set('');
-    this.success.set('');
+    this.registeredPayment.set(null);
     this.loadPlates();
   }
 
   loadPlates(): void {
-    if (this.loadingPlates()) return;
+    if (this.loadingPlates() || this.tariffsSaving()) return;
     this.plates.set([]);
     this.platesError.set('');
     this.loadingPlates.set(true);
@@ -114,39 +207,14 @@ export class Pagos {
     });
   }
 
-  edit(payment: Pago): void {
-    if (this.busy()) return;
-    this.loading.set(true);
-    this.actionError.set('');
-    this.success.set('');
-    this.pendingDelete.set(null);
-    this.api
-      .get(payment.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (data) => {
-          this.loading.set(false);
-          this.editing.set(data.id);
-          this.legacyPayment.set(data.vehiculo_id === null);
-          this.form.controls.vehiculo_id.setValidators(
-            this.legacyPayment() ? null : Validators.required,
-          );
-          this.form.reset({ ...data, valor: Number(data.valor) });
-          this.showForm.set(true);
-          if (!this.legacyPayment()) this.loadPlates();
-        },
-        error: (error) => {
-          this.loading.set(false);
-          this.actionError.set(this.errorMessage(error));
-        },
-      });
-  }
-
   cancel(): void {
     if (this.busy()) return;
     this.showForm.set(false);
-    this.pendingDelete.set(null);
     this.actionError.set('');
+  }
+
+  formatDate(date: Date | string): string {
+    return this.dateFormat.format(new Date(date));
   }
 
   fieldError(field: Field): string {
@@ -154,39 +222,38 @@ export class Pagos {
     if (!control.touched || !control.errors) return '';
     if (control.errors['server']) return String(control.errors['server']);
     if (control.errors['required']) return 'Este campo es obligatorio y no puede estar vacío.';
-    if (field === 'valor') return 'El valor debe ser mayor que 0.';
     return 'Revisa este campo.';
   }
 
   save(): void {
-    if (this.busy() || (!this.legacyPayment() && !this.plates().length)) return;
+    if (this.busy() || !this.plates().length || this.selectedVehicle()?.tiene_pago) return;
     this.form.markAllAsTouched();
-    const { valor, periodo, vehiculo_id } = this.form.getRawValue();
-    const id = this.editing();
-    if (this.form.invalid || valor === null || (id === null && vehiculo_id === null)) {
+    const { vehiculo_id } = this.form.getRawValue();
+    const valor = this.selectedVehicle()?.tarifa ?? null;
+    if (vehiculo_id === null || valor === null) {
       this.actionError.set('Revisa los campos señalados antes de guardar el pago.');
       return;
     }
-    const payload = { valor, periodo: periodo.trim() };
     this.saving.set(true);
     this.actionError.set('');
-    this.success.set('');
-    const request = id === null
-      ? this.api.create({ ...payload, vehiculo_id: vehiculo_id! })
-      : this.api.update(id, vehiculo_id === null ? payload : { ...payload, vehiculo_id });
-    request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-      next: () => {
+    this.registeredPayment.set(null);
+    this.api.create({ valor, vehiculo_id }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+      next: (payment) => {
         this.saving.set(false);
         this.showForm.set(false);
-        this.success.set(
-          `Pago ${id === null ? 'registrado' : 'actualizado'} correctamente.`,
-        );
+        this.registeredPayment.set(payment);
         this.load();
       },
       error: (error: HttpErrorResponse) => {
         this.saving.set(false);
         this.actionError.set(this.errorMessage(error));
         const body = error.error as ErrorApi | null;
+        if (error.status === 409) {
+          this.loadPlates();
+        } else if (error.status === 422 && typeof body?.detail === 'string') {
+          this.loadPlates();
+          this.loadTariffs();
+        }
         if (error.status === 422 && Array.isArray(body?.detail)) {
           for (const issue of body.detail) {
             const field = issue.loc.at(-1);
@@ -207,45 +274,11 @@ export class Pagos {
     this.form.controls[field].markAsTouched();
   }
 
-  confirmDelete(payment: Pago): void {
-    if (this.busy()) return;
-    this.pendingDelete.set(payment);
-    this.showForm.set(false);
-    this.actionError.set('');
-    this.success.set('');
-  }
-
-  remove(): void {
-    const payment = this.pendingDelete();
-    if (!payment || this.busy()) return;
-    this.saving.set(true);
-    this.actionError.set('');
-    this.api
-      .delete(payment.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          this.saving.set(false);
-          this.pendingDelete.set(null);
-          this.success.set(`Pago eliminado correctamente.`);
-          this.load();
-        },
-        error: (error) => {
-          this.saving.set(false);
-          this.actionError.set(this.errorMessage(error, true));
-          if (error.status === 404) {
-            this.pendingDelete.set(null);
-            this.load();
-          }
-        },
-      });
-  }
-
-  private errorMessage(error: HttpErrorResponse, deleting = false): string {
+  private errorMessage(error: HttpErrorResponse): string {
     if (error.status === 404) return 'El pago ya no existe. Actualiza el listado.';
     if (error.status === 409)
-      return deleting
-        ? 'No se puede eliminar: el pago tiene registros relacionados o un conflicto con otros datos.'
+      return typeof error.error?.detail === 'string'
+        ? error.error.detail
         : 'La operación entra en conflicto con los datos existentes.';
     if (error.status === 422)
       return typeof error.error?.detail === 'string'

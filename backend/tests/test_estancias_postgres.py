@@ -25,8 +25,8 @@ def datos():
         assert c.scalar(text('SELECT version_num FROM alembic_version')) in {'0002', '68a8a3380d1d'}
     token = 'TEST-EST-' + uuid4().hex.upper()
     with Session(engine) as s, s.begin():
-        vehicles = [Vehiculo(placa=f'{token}-{n}', color='Prueba', modelo=2026, marca='Prueba', tipo='MOTO') for n in range(2)]
-        cells = [Celda(codigo=f'{token}-{n}', tipo='Libre') for n in range(2)]
+        vehicles = [Vehiculo(placa=f'{token}-{n}', color='Prueba', modelo=2026, marca='Prueba', tipo='MOTOCICLETA') for n in range(2)]
+        cells = [Celda(codigo=f'{token}-{n}', tipo='MOTOCICLETA') for n in range(2)]
         operators = [Operador(nombre=f'{token}-{n}', telefono='001') for n in range(2)]
         s.add_all(vehicles + cells + operators)
         s.flush()

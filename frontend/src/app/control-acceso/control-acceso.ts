@@ -13,22 +13,6 @@ import { RolBadge } from '../shared/rol-badge/rol-badge';
 const nonBlank: ValidatorFn = (c) =>
   typeof c.value === 'string' && c.value.trim() ? null : { required: true };
 const placa = (value: string) => value.trim().toUpperCase();
-const tipoCeldaParaVehiculo = (tipo: string): string => {
-  switch (tipo) {
-    case 'MOTO':
-      return 'MOTO';
-    case 'AUTOMOVIL':
-    case 'CAMIONETA':
-      return 'CARRO';
-    case 'FURGON':
-    case 'CAMION':
-      return 'CAMION';
-    case 'OTROS':
-      return 'OTRO';
-    default:
-      return '';
-  }
-};
 
 @Component({
   selector: 'app-control-acceso',
@@ -148,8 +132,7 @@ export class ControlAcceso {
     if (
       vehiculoSeleccionado &&
       celdaSeleccionada &&
-      vehiculoSeleccionado.tipo !== celdaSeleccionada.tipo &&
-      tipoCeldaParaVehiculo(vehiculoSeleccionado.tipo) !== celdaSeleccionada.tipo
+      vehiculoSeleccionado.tipo !== celdaSeleccionada.tipo
     ) {
       this.errorTipoEntrada.set(
         'El tipo de la celda debe coincidir con el tipo del vehículo seleccionado.',

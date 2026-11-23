@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Annotated, Literal
 
 from pydantic import AfterValidator, BaseModel, BeforeValidator, ConfigDict, Field, field_validator
@@ -9,7 +10,7 @@ Texto = Annotated[str, BeforeValidator(lambda value: required_text(value, "El ca
 Placa = Annotated[Texto, AfterValidator(str.upper)]
 Anio = Annotated[int, Field(strict=True, ge=1, le=9999)]
 TipoVehiculo = Annotated[
-    Literal["MOTO", "AUTOMOVIL", "CAMIONETA", "FURGON", "CAMION", "OTROS"],
+    Literal["AUTOMOVIL", "MOTOCICLETA"],
     BeforeValidator(lambda value: required_text(value, "tipo")),
 ]
 CeldaId = Annotated[int, Field(ge=1, le=9223372036854775807)]
@@ -62,8 +63,13 @@ class MensualidadRespuesta(BaseModel):
     estado: EstadoMensualidad
 
 
+class VehiculoListado(VehiculoRespuesta):
+    fecha_inicio_mensualidad: date | None
+    fecha_final_mensualidad: date | None
+
+
 class VehiculosPagina(BaseModel):
-    items: list[VehiculoRespuesta]
+    items: list[VehiculoListado]
     total: int
     offset: int
     limit: int

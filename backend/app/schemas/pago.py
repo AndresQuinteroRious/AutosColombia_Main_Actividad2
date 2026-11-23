@@ -2,7 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Annotated
 
-from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_validator
+from pydantic import BaseModel, BeforeValidator, ConfigDict, Field, field_serializer, field_validator
 
 from app.models import required_text
 
@@ -16,7 +16,7 @@ class PagoCrear(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     valor: ValorPago
-    periodo: Texto
+    periodo: Texto | None = None
     vehiculo_id: VehiculoId
 
 
@@ -48,6 +48,21 @@ class PagoRespuesta(BaseModel):
 class PlacaPago(BaseModel):
     id: int
     placa: str
+    tipo: str
+    tarifa: float | None
+    tiene_pago: bool
+    pago_activo: bool
+
+
+class TarifasPago(BaseModel):
+    model_config = ConfigDict(from_attributes=True, extra="forbid")
+
+    automovil: ValorPago
+    motocicleta: ValorPago
+
+    @field_serializer("automovil", "motocicleta", when_used="json")
+    def serialize_amount(self, value: Decimal) -> float:
+        return float(value)
 
 
 class PagosPagina(BaseModel):

@@ -11,8 +11,8 @@ from app.services.usuario import UsuarioError, autenticar_usuario, permisos_del_
 
 
 def test_normalizes_unique_identifiers_on_creation_and_assignment():
-    vehicle = Vehiculo(placa=" \tabc123\n", color="Azul", modelo=2025, marca="Marca", tipo="MOTO")
-    cell = Celda(codigo=" a-01 ", tipo="Libre")
+    vehicle = Vehiculo(placa=" \tabc123\n", color="Azul", modelo=2025, marca="Marca", tipo="MOTOCICLETA")
+    cell = Celda(codigo=" a-01 ", tipo="AUTOMOVIL")
     assert vehicle.placa == "ABC123"
     assert cell.codigo == "A-01"
     vehicle.placa = " xyz789 "
@@ -38,16 +38,18 @@ def test_rejects_invalid_year(value):
         Vehiculo(modelo=value)
 
 
-@pytest.mark.parametrize("value", ["MOTO", "AUTOMOVIL", "CAMIONETA"])
-def test_vehicle_types(value):
-    assert Vehiculo(tipo=value).tipo == value
+@pytest.mark.parametrize("value", ["MOTOCICLETA", "AUTOMOVIL"])
+@pytest.mark.parametrize("model", [Vehiculo, Celda])
+def test_parking_types(model, value):
+    assert model(tipo=value).tipo == value
 
 
 def test_rejects_unknown_type_and_preserves_phone_text():
     with pytest.raises(ValueError):
         Vehiculo(tipo="CAMION")
     assert Operador(telefono="+57 00123").telefono == "+57 00123"
-    assert Celda(tipo="Categoría futura").tipo == "Categoría futura"
+    with pytest.raises(ValueError):
+        Celda(tipo="Categoría futura")
 
 
 @pytest.mark.parametrize("value", ["ADMINISTRADOR", "ASISTENTE", "OPERADOR"])

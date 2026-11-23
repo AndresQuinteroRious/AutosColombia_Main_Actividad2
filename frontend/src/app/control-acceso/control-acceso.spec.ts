@@ -6,7 +6,7 @@ import { ControlAcceso } from './control-acceso';
 describe('Control de acceso', () => {
   let http: HttpTestingController;
   let c: ControlAcceso;
-  const celda = { id: 2, codigo: 'TEST-C', tipo: 'MOTO' };
+  const celda = { id: 2, codigo: 'TEST-C', tipo: 'MOTOCICLETA' };
   const stay = {
     id: 3,
     vehiculo_id: 1,
@@ -23,10 +23,23 @@ describe('Control de acceso', () => {
       marca: 'Prueba',
       color: 'Azul',
       modelo: 2026,
-      tipo: 'MOTO',
+      tipo: 'MOTOCICLETA',
+      estado_mensualidad: 'activo',
     },
     esta_dentro: true,
     estancia: { ...stay, celda },
+  };
+  const flushCatalogs = () => {
+    http.expectOne('/estancias/celdas-disponibles').flush([
+      celda,
+      { ...celda, id: 5, tipo: 'AUTOMOVIL' },
+    ]);
+    http
+      .expectOne('/vehiculos?offset=0&limit=100')
+      .flush({ items: [state.vehiculo], total: 1, offset: 0, limit: 100 });
+    http
+      .expectOne('/estancias/operador-actual')
+      .flush({ id: 4, nombre: 'Prueba', telefono: '001' });
   };
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -35,24 +48,11 @@ describe('Control de acceso', () => {
     });
     http = TestBed.inject(HttpTestingController);
     c = TestBed.createComponent(ControlAcceso).componentInstance;
-    http
-      .expectOne('/celdas?offset=0&limit=100')
-      .flush({ items: [celda], total: 2, offset: 0, limit: 100 });
-    http
-      .expectOne('/celdas?offset=1&limit=100')
-      .flush({ items: [{ ...celda, id: 5 }], total: 2, offset: 1, limit: 100 });
-    http
-      .expectOne('/operadores?offset=0&limit=100')
-      .flush({
-        items: [{ id: 4, nombre: 'Prueba', telefono: '001' }],
-        total: 1,
-        offset: 0,
-        limit: 100,
-      });
+    flushCatalogs();
   });
   afterEach(() => http.verify());
 
-  it('recorre todas las páginas y registra entrada normalizada sin fecha ni doble envío', () => {
+  it('registra la entrada en una celda del mismo tipo y evita el doble envío', () => {
     expect(c.celdas().length).toBe(2);
     c.entrada.setValue({ placa: ' test-a ', celda_id: 2, operador_id: 4 });
     c.registrarEntrada();
@@ -60,8 +60,15 @@ describe('Control de acceso', () => {
     const req = http.expectOne('/estancias/entrada');
     expect(req.request.body).toEqual({ placa: 'TEST-A', celda_id: 2, operador_id: 4 });
     req.flush(stay);
+    flushCatalogs();
     expect(c.exitoEntrada()).toContain('TEST-C');
     expect(c.exitoEntrada()).toContain('Bogotá');
+  });
+  it('rechaza una motocicleta en una celda de automóvil', () => {
+    c.entrada.setValue({ placa: 'TEST-A', celda_id: 5, operador_id: 4 });
+    c.registrarEntrada();
+    http.expectNone('/estancias/entrada');
+    expect(c.errorTipoEntrada()).toContain('debe coincidir');
   });
   it('rechaza blancos y muestra los conflictos de ocupación y referencias', () => {
     c.entrada.setValue({ placa: ' ', celda_id: 2, operador_id: 4 });
@@ -102,6 +109,7 @@ describe('Control de acceso', () => {
     const req = http.expectOne('/estancias/salida');
     expect(req.request.body).toEqual({ placa: 'TEST-A', operador_id: 4 });
     req.flush({ ...stay, salida: '2026-10-19T16:00:00Z', operador_salida_id: 4 });
+    flushCatalogs();
     http
       .expectOne('/estancias/vehiculo/TEST-A')
       .flush({ ...state, esta_dentro: false, estancia: null });
