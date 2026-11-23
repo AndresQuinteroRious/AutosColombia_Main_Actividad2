@@ -83,13 +83,6 @@
               </select>
               <span class="field-error" id="tipo-error">{{ fieldError('tipo') }}</span>
             </div>
-            <div class="field">
-              <label for="estado_mensualidad">Mensualidad</label>
-              <select id="estado_mensualidad" formControlName="estado_mensualidad" required>
-                <option value="activo">Con mensualidad</option>
-                <option value="desactivado">Sin mensualidad</option>
-              </select>
-            </div>
           </div>
           <div class="actions">
             <button class="primary" type="submit">
@@ -165,7 +158,7 @@
                 <td>{{ vehicle.marca }}</td>
                 <td>{{ vehicle.tipo }}</td>
                 <td>{{ vehicle.modelo }}</td>
-                <td>{{ vehicle.color }}</td>
+                <td class="vehicle-color">{{ vehicle.color }}</td>
                 <td>
                   <span class="membership-status" [class.active]="vehicle.estado_mensualidad === 'activo'">
                     {{ estadoMensualidad(vehicle) }}
@@ -174,16 +167,6 @@
                 <td class="membership-date">{{ formatMembershipDate(vehicle.fecha_inicio_mensualidad) }}</td>
                 <td class="membership-date">{{ formatMembershipDate(vehicle.fecha_final_mensualidad) }}</td>
                 <td class="row-actions">
-                  @if (vehicle.estado_mensualidad !== 'activo') {
-                    <button
-                      type="button"
-                      (click)="activarMensualidad(vehicle)"
-                      [disabled]="busy()"
-                      [attr.aria-label]="'Activar mensualidad para ' + vehicle.placa"
-                    >
-                      Activar mensualidad
-                    </button>
-                  }
                   <button
                     type="button"
                     (click)="edit(vehicle)"
@@ -195,7 +178,8 @@
                     type="button"
                     class="delete-link"
                     (click)="confirmDelete(vehicle)"
-                    [disabled]="busy()"
+                    [disabled]="busy() || !!vehicle.mensualidad_vigente"
+                    [attr.title]="vehicle.mensualidad_vigente ? 'El vehículo tiene una mensualidad vigente' : null"
                     [attr.aria-label]="'Eliminar ' + vehicle.placa"
                   >
                     Eliminar

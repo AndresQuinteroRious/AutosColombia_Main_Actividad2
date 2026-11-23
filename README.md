@@ -946,17 +946,16 @@ La bienvenida permanece en **Inicio**. La ruta de pantalla `/gestion/vehiculos`
 es distinta de la ruta API `/vehiculos` para evitar conflictos con el proxy.
 
 - El listado usa páginas de 10 vehículos, ordenadas por id, con Anterior y Siguiente.
-- La tabla **Vehículos registrados** muestra **Estado mensualidad** en lugar de
-  **Celda**. Si no hay un registro activo, ofrece **Activar mensualidad**, que
-  registra o reactiva el estado en la tabla `mensualidad` por id de vehículo.
-- El formulario de vehículo permite elegir **Con mensualidad** o **Sin mensualidad**
-  al registrar y editar; el backend guarda el estado junto al id del vehículo.
+- La tabla **Vehículos registrados** muestra el estado y las fechas de la
+  mensualidad. El registro de un pago activa la mensualidad del vehículo.
 - **Nuevo vehículo** abre un formulario reactivo con placa, marca, año, color y tipo.
   Todos son obligatorios; el año es entero entre 1 y 9999. La placa se recorta y
   convierte a mayúsculas. Los tipos son `AUTOMOVIL` y `MOTOCICLETA`.
 - **Editar** consulta la versión actual del vehículo y guarda mediante PATCH sin id.
 - **Eliminar** muestra una confirmación con placa, marca y año. Solo se envía DELETE
   al pulsar **Confirmar eliminación**; **Cancelar eliminación** no modifica datos.
+  La eliminación se bloquea si el vehículo está activo desde la fecha de inicio
+  hasta el día anterior a la fecha final de su mensualidad, según la fecha en Colombia.
 - Guardar o eliminar actualiza el listado. Si la última página queda vacía, se
   retrocede a una página existente. Los mensajes indican el resultado de cada acción.
 - Se muestran errores junto a los campos, placas duplicadas, vehículos que ya no

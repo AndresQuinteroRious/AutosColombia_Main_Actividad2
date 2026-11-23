@@ -220,8 +220,13 @@ thead th {
   background: #dcfce7;
 }
 .membership-status,
-.membership-date {
+.membership-date,
+.vehicle-color {
   white-space: nowrap;
+}
+.vehicle-color {
+  max-width: none;
+  overflow-wrap: normal;
 }
 .pagination {
   margin-top: 24px;

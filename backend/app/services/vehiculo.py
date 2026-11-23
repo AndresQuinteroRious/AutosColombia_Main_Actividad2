@@ -8,6 +8,13 @@ from app.models import Vehiculo
 from app.schemas.vehiculo import EstadoMensualidad, VehiculoActualizar, VehiculoCrear
 
 
+FECHA_COLOMBIA = "(statement_timestamp() AT TIME ZONE 'America/Bogota')::date"
+MENSUALIDAD_VIGENTE = f"""
+    COALESCE(m.estado = 'activo' AND m.fecha_inicio <= {FECHA_COLOMBIA}
+             AND {FECHA_COLOMBIA} < m.fecha_final, false)
+"""
+
+
 class VehiculoError(Exception):
     def __init__(self, status_code: int, detail: str) -> None:
         self.status_code = status_code
@@ -39,8 +46,8 @@ def database_operation(operation):
     return wrapped
 
 
-def find_vehicle(session: Session, vehicle_id: int) -> Vehiculo:
-    vehicle = session.get(Vehiculo, vehicle_id)
+def find_vehicle(session: Session, vehicle_id: int, *, for_delete: bool = False) -> Vehiculo:
+    vehicle = session.get(Vehiculo, vehicle_id, with_for_update=True if for_delete else None)
     if vehicle is None:
         raise VehiculoError(404, "Vehículo no encontrado.")
     return vehicle
@@ -65,11 +72,12 @@ def list_vehicles(session: Session, offset: int, limit: int) -> dict:
     total = session.scalar(select(func.count()).select_from(Vehiculo))
     items = session.execute(
         text(
-            """
+            f"""
             SELECT v.id, v.placa, v.color, v.modelo, v.marca, v.tipo, v.celda_id,
                    m.estado AS estado_mensualidad,
                    m.fecha_inicio AS fecha_inicio_mensualidad,
-                   m.fecha_final AS fecha_final_mensualidad
+                   m.fecha_final AS fecha_final_mensualidad,
+                   {MENSUALIDAD_VIGENTE} AS mensualidad_vigente
             FROM vehiculo AS v
             LEFT JOIN LATERAL (
                 SELECT estado, fecha_inicio, fecha_final
@@ -191,6 +199,27 @@ def update_vehicle(session: Session, vehicle_id: int, data: VehiculoActualizar) 
 
 @database_operation
 def delete_vehicle(session: Session, vehicle_id: int) -> None:
-    vehicle = find_vehicle(session, vehicle_id)
+    # Serializa la eliminación con las operaciones de pago y de estado.
+    vehicle = find_vehicle(session, vehicle_id, for_delete=True)
+    params = {"vehicle_id": vehicle_id}
+    vigente = session.scalar(
+        text(f"""
+            SELECT {MENSUALIDAD_VIGENTE}
+            FROM mensualidad m
+            WHERE m.id_vehiculo = :vehicle_id
+            ORDER BY m.id_mensualidad DESC
+            LIMIT 1
+        """),
+        params,
+    )
+    if vigente:
+        session.rollback()
+        raise VehiculoError(409, "No se puede eliminar el vehículo porque tiene una mensualidad vigente.")
+
+    # Una mensualidad vacía se crea al registrar el vehículo y no representa un pago.
+    session.execute(
+        text("DELETE FROM mensualidad WHERE id_vehiculo = :vehicle_id AND fecha_inicio IS NULL"),
+        params,
+    )
     session.delete(vehicle)
     session.commit()

@@ -8,7 +8,7 @@ export interface VehiculoCrear {
   marca: string;
   tipo: TipoVehiculo;
   celda_id?: number;
-  estado_mensualidad: EstadoMensualidad;
+  estado_mensualidad?: EstadoMensualidad;
 }
 export type VehiculoActualizar = Partial<VehiculoCrear>;
 export interface Vehiculo extends Omit<VehiculoCrear, 'estado_mensualidad'> {
@@ -16,6 +16,7 @@ export interface Vehiculo extends Omit<VehiculoCrear, 'estado_mensualidad'> {
   estado_mensualidad?: EstadoMensualidad | null;
   fecha_inicio_mensualidad?: string | null;
   fecha_final_mensualidad?: string | null;
+  mensualidad_vigente?: boolean;
 }
 export interface MensualidadRespuesta {
   id_mensualidad: number;

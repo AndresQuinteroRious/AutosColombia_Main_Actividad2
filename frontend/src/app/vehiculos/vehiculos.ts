@@ -5,7 +5,6 @@ import { FormBuilder, ReactiveFormsModule, ValidatorFn, Validators } from '@angu
 import { ApiService } from '../services/api.service';
 import {
   ErrorApi,
-  EstadoMensualidad,
   TIPOS_VEHICULO,
   TipoVehiculo,
   Vehiculo,
@@ -47,10 +46,6 @@ export class Vehiculos {
     tipo: this.fb.nonNullable.control<TipoVehiculo | ''>('', [
       Validators.required,
       (control) => (this.types.includes(control.value) ? null : { type: true }),
-    ]),
-    estado_mensualidad: this.fb.nonNullable.control<EstadoMensualidad>('desactivado', [
-      Validators.required,
-      (control) => ['activo', 'desactivado'].includes(control.value) ? null : { status: true },
     ]),
   });
   readonly items = signal<Vehiculo[]>([]);
@@ -136,7 +131,6 @@ export class Vehiculos {
             modelo: data.modelo,
             marca: data.marca,
             tipo: data.tipo,
-            estado_mensualidad: data.estado_mensualidad ?? 'desactivado',
           });
           this.showForm.set(true);
         },
@@ -180,7 +174,6 @@ export class Vehiculos {
       marca: value.marca.trim(),
       modelo: value.modelo!,
       tipo: value.tipo as TipoVehiculo,
-      estado_mensualidad: value.estado_mensualidad,
     };
     console.log('Payload a enviar:', payload);
     this.form.controls.placa.setValue(payload.placa);
@@ -193,11 +186,8 @@ export class Vehiculos {
       next: (vehicle) => {
         this.saving.set(false);
         this.showForm.set(false);
-          const activationPending =
-            payload.estado_mensualidad === 'activo' && vehicle.estado_mensualidad === 'desactivado';
         this.success.set(
-            `Vehículo ${vehicle.placa} ${id === null ? 'registrado' : 'actualizado'} correctamente.` +
-              (activationPending ? ' Registra un pago antes de activar la mensualidad.' : ''),
+          `Vehículo ${vehicle.placa} ${id === null ? 'registrado' : 'actualizado'} correctamente.`,
         );
         this.load();
       },
@@ -229,7 +219,7 @@ export class Vehiculos {
   }
 
   confirmDelete(vehicle: Vehiculo): void {
-    if (this.busy()) return;
+    if (this.busy() || vehicle.mensualidad_vigente) return;
     this.pendingDelete.set(vehicle);
     this.showForm.set(false);
     this.actionError.set('');
@@ -238,7 +228,7 @@ export class Vehiculos {
 
   remove(): void {
     const vehicle = this.pendingDelete();
-    if (!vehicle || this.busy()) return;
+    if (!vehicle || this.busy() || vehicle.mensualidad_vigente) return;
     this.saving.set(true);
     this.actionError.set('');
     this.api
@@ -266,7 +256,9 @@ export class Vehiculos {
     if (error.status === 404) return 'El vehículo ya no existe. Actualiza el listado.';
     if (error.status === 409)
       return deleting
-        ? 'No se puede eliminar: el vehículo tiene registros relacionados o un conflicto con otros datos.'
+        ? (typeof error.error?.detail === 'string'
+            ? error.error.detail
+            : 'No se puede eliminar: el vehículo tiene registros relacionados o un conflicto con otros datos.')
         : 'Ya existe un vehículo con esa placa.';
     if (error.status === 422)
       return 'Revisa los datos: hay campos que no cumplen las validaciones.';
@@ -279,35 +271,6 @@ export class Vehiculos {
 
   formatMembershipDate(value: string | null | undefined): string {
     return value ? value.split('-').reverse().join('/') : '—';
-  }
-
-  activarMensualidad(vehicle: Vehiculo): void {
-    if (this.busy() || vehicle.estado_mensualidad === 'activo') return;
-    this.saving.set(true);
-    this.actionError.set('');
-    this.success.set('');
-    this.api
-      .activateMonthlyStatus(vehicle.id)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (monthly) => {
-          this.saving.set(false);
-          if (monthly.estado === 'activo') {
-            this.success.set(`Mensualidad activada para el vehículo ${vehicle.placa}.`);
-          } else {
-            this.actionError.set('Registra un pago antes de activar la mensualidad.');
-          }
-          this.load();
-        },
-        error: (error: HttpErrorResponse) => {
-          this.saving.set(false);
-          this.actionError.set(
-            error.status === 404
-              ? 'El vehículo ya no existe. Actualiza el listado.'
-              : 'No se pudo activar la mensualidad. Actualiza el listado e inténtalo de nuevo.',
-          );
-        },
-      });
   }
 
   aplicarFiltros(): void {

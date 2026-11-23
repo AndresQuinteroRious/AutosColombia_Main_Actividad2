@@ -2,9 +2,12 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 from sqlalchemy.exc import IntegrityError
 
+from app.database import get_session
+from app.main import app
 from app.schemas.celda import CeldaActualizar
 from app.schemas.vehiculo import VehiculoActualizar, VehiculoCrear
 from app.services.vehiculo import VehiculoError, create_vehicle, delete_vehicle, update_vehicle
@@ -62,8 +65,35 @@ def test_vehicle_write_reports_the_status_returned_by_database() -> None:
     assert updated.estado_mensualidad == "desactivado"
 
 
+@pytest.mark.parametrize(("vigente", "status"), [(True, 409), (False, 204)])
+def test_delete_vehicle_checks_current_membership(vigente: bool, status: int) -> None:
+    session = MagicMock()
+    session.scalar.return_value = vigente
+    app.dependency_overrides[get_session] = lambda: session
+    client = TestClient(app)
+    try:
+        response = client.delete("/vehiculos/1")
+    finally:
+        client.close()
+        app.dependency_overrides.pop(get_session)
+
+    assert response.status_code == status
+    if vigente:
+        assert response.json() == {
+            "detail": "No se puede eliminar el vehículo porque tiene una mensualidad vigente.",
+        }
+        session.execute.assert_not_called()
+        session.delete.assert_not_called()
+        session.rollback.assert_called_once()
+    else:
+        assert not response.content
+        session.delete.assert_called_once_with(session.get.return_value)
+        session.commit.assert_called_once()
+
+
 def test_delete_foreign_key_conflict_rolls_back_without_related_deletes():
     session = MagicMock()
+    session.scalar.return_value = False
     vehicle = session.get.return_value
     driver_error = Exception("private database details")
     driver_error.sqlstate = "23503"

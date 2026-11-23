@@ -66,6 +66,7 @@ class MensualidadRespuesta(BaseModel):
 class VehiculoListado(VehiculoRespuesta):
     fecha_inicio_mensualidad: date | None
     fecha_final_mensualidad: date | None
+    mensualidad_vigente: bool
 
 
 class VehiculosPagina(BaseModel):

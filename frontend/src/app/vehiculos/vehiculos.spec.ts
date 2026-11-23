@@ -10,6 +10,7 @@ describe('Gestión de vehículos', () => {
     component.newVehicle();
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('form #estado_mensualidad')).toBeNull();
     for (const [field, value] of Object.entries({
       placa: ' dom123 ',
       marca: 'Prueba',
@@ -31,6 +32,7 @@ describe('Gestión de vehículos', () => {
       .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     const request = http.expectOne({ method: 'POST', url: '/vehiculos' });
     expect(request.request.body.modelo).toBe(2025);
+    expect(request.request.body).not.toHaveProperty('estado_mensualidad');
     request.flush({ ...vehicle, placa: 'DOM123' });
     flushList([{ ...vehicle, placa: 'DOM123' }]);
   });
@@ -79,7 +81,7 @@ describe('Gestión de vehículos', () => {
         fecha_inicio_mensualidad: '2026-11-22',
         fecha_final_mensualidad: '2026-12-22',
       },
-      { ...vehicle, id: 2, placa: 'XYZ987', estado_mensualidad: 'desactivado' },
+      { ...vehicle, id: 2, placa: 'XYZ987', color: 'Azul oscuro metalizado', estado_mensualidad: 'desactivado' },
     ]);
 
     const root = fixture.nativeElement as HTMLElement;
@@ -90,6 +92,8 @@ describe('Gestión de vehículos', () => {
       .toEqual(['22/11/2026', '22/12/2026']);
     expect(Array.from(rows[1].querySelectorAll('.membership-date'), (cell) => cell.textContent))
       .toEqual(['—', '—']);
+    expect(rows[1].querySelector('.vehicle-color')?.textContent).toBe('Azul oscuro metalizado');
+    expect(rows[1].querySelector('.row-actions')?.textContent).not.toContain('Activar mensualidad');
   });
 
   it('pagina usando offset y limit', () => {
@@ -140,16 +144,22 @@ describe('Gestión de vehículos', () => {
   });
 
   it('consulta el vehículo y envía PATCH sin id', () => {
-    flushList([vehicle]);
-    component.edit(vehicle);
-    http.expectOne({ method: 'GET', url: '/vehiculos/1' }).flush(vehicle);
+    const activeVehicle: Vehiculo = { ...vehicle, estado_mensualidad: 'activo' };
+    flushList([activeVehicle]);
+    component.edit(activeVehicle);
+    http.expectOne({ method: 'GET', url: '/vehiculos/1' }).flush(activeVehicle);
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+    expect(root.querySelector('form #estado_mensualidad')).toBeNull();
     component.form.controls.color.setValue('Rojo');
     component.save();
     const request = http.expectOne({ method: 'PATCH', url: '/vehiculos/1' });
     expect(request.request.body.id).toBeUndefined();
-    request.flush({ ...vehicle, color: 'Rojo' });
-    flushList([{ ...vehicle, color: 'Rojo' }]);
+    expect(request.request.body).not.toHaveProperty('estado_mensualidad');
+    request.flush({ ...activeVehicle, color: 'Rojo' });
+    flushList([{ ...activeVehicle, color: 'Rojo' }]);
     expect(component.success()).toContain('actualizado');
+    expect(root.querySelector('.membership-status.active')?.textContent).toContain('Con mensualidad');
   });
 
   it('confirma con placa, permite cancelar y elimina una sola vez', () => {
@@ -169,6 +179,21 @@ describe('Gestión de vehículos', () => {
       .flush(null, { status: 204, statusText: 'No Content' });
     flushList();
     expect(component.success()).toContain('eliminado');
+  });
+
+  it('bloquea eliminar un vehículo con mensualidad vigente', () => {
+    const currentVehicle: Vehiculo = {
+      ...vehicle,
+      estado_mensualidad: 'activo',
+      mensualidad_vigente: true,
+    };
+    flushList([currentVehicle]);
+    const root = fixture.nativeElement as HTMLElement;
+    const button = root.querySelector<HTMLButtonElement>('button[aria-label="Eliminar ABC123"]');
+    expect(button?.disabled).toBe(true);
+    component.confirmDelete(currentVehicle);
+    expect(component.pendingDelete()).toBeNull();
+    http.expectNone((request) => request.method === 'DELETE');
   });
 
   it('informa conflicto de eliminación sin retirar el registro', () => {
